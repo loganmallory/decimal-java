@@ -319,12 +319,22 @@ public class Decimal64 {
                 public static long fromI64(long integer) {
                     return fromParts(integer, 0);
                 }
+
+                public static long toI64(long decimal) {
+                    // TODO
+                    throw new RuntimeException("toI64(..) not implemented yet");
+                }
             }
 
             public static class I32 {
 
                 public static long fromI32(int integer) {
                     return fromParts(integer, 0);
+                }
+
+                public static int toI32(long decimal) {
+                    // TODO
+                    throw new RuntimeException("toI32(..) not implemented yet");
                 }
             }
 
