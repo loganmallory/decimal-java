@@ -1,4 +1,4 @@
-package io.github.loganmallory.java.decimal;
+package io.github.loganmallory.decimaljava;
 
 import java.nio.ByteBuffer;
 

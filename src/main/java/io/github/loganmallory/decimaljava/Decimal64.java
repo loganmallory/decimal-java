@@ -1,4 +1,4 @@
-package io.github.loganmallory.java.decimal;
+package io.github.loganmallory.decimaljava;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -7,9 +7,9 @@ import java.math.MathContext;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
-import static io.github.loganmallory.java.decimal.Decimal64.Internal.Data.*;
-import static io.github.loganmallory.java.decimal.Decimal64.Internal.N_MANTISSA_BITS;
-import static io.github.loganmallory.java.decimal.Decimal64.Internal.SPECIAL_EXPONENT;
+import static io.github.loganmallory.decimaljava.Decimal64.Internal.Data.*;
+import static io.github.loganmallory.decimaljava.Decimal64.Internal.N_MANTISSA_BITS;
+import static io.github.loganmallory.decimaljava.Decimal64.Internal.SPECIAL_EXPONENT;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
 
@@ -224,7 +224,6 @@ public class Decimal64 {
                     // slower, but handles all cases
                     return fromPartsPossibleFlowNoZero(mantissa, exponent);
                 }
-
 
                 public static long fromPartsFiniteLessThan16DigitsNoFlowNoZero(long mantissa, int exponent) {
                     assert FastMath.nDigits(mantissa) <= 16 : "mantissa must be <= 16 digits";

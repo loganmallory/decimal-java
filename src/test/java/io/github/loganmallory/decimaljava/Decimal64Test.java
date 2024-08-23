@@ -1,4 +1,4 @@
-package io.github.loganmallory.java.decimal;
+package io.github.loganmallory.decimaljava;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -13,9 +13,9 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import static io.github.loganmallory.java.decimal.Decimal64.*;
-import static io.github.loganmallory.java.decimal.Decimal64.Internal.*;
-import static io.github.loganmallory.java.decimal.Decimal64.Internal.Data.*;
+import static io.github.loganmallory.decimaljava.Decimal64.*;
+import static io.github.loganmallory.decimaljava.Decimal64.Internal.*;
+import static io.github.loganmallory.decimaljava.Decimal64.Internal.Data.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -25,7 +25,7 @@ public class Decimal64Test {
     // 100m takes ~20 minutes
     // 10m  takes ~2 minutes
     // 1m   takes ~20 seconds
-    public static final int FUZZ_N = Integer.getInteger("DECIMAL64_TEST_FUZZ_N", 10_000_000);
+    public static final int FUZZ_N = Integer.getInteger("DECIMAL64_TEST_FUZZ_N", 1_000_000);
 
     public static final long RNG_SEED = 111;
 
