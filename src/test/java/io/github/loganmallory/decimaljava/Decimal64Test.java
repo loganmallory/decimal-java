@@ -327,7 +327,8 @@ public class Decimal64Test {
 
                 @Test
                 public void random() {
-                    // TODO: Not really sure how to randomly test this.
+                    // TODO: randomly test fromParts(...).
+                    //       Not really sure how to randomly test this.
                     //       Will leave for later, it's mostly covered by other ops like math anyways.
                 }
             }
@@ -420,7 +421,7 @@ public class Decimal64Test {
 
             @Nested
             class ToI64 {
-                // TODO
+                // TODO test toI64
             }
         }
 
@@ -496,7 +497,7 @@ public class Decimal64Test {
 
             @Nested
             class ToI32 {
-                // TODO
+                // TODO test toI32
             }
         }
 

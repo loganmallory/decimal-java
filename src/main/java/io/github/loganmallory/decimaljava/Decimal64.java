@@ -321,7 +321,7 @@ public class Decimal64 {
                 }
 
                 public static long toI64(long decimal) {
-                    // TODO
+                    // TODO implement toI64
                     throw new RuntimeException("toI64(..) not implemented yet");
                 }
             }
@@ -333,7 +333,7 @@ public class Decimal64 {
                 }
 
                 public static int toI32(long decimal) {
-                    // TODO
+                    // TODO implement toI32
                     throw new RuntimeException("toI32(..) not implemented yet");
                 }
             }
@@ -373,7 +373,7 @@ public class Decimal64 {
                         return ZERO;
                     }
 
-                    // TODO check subnormal, use f64 mantissa and exponent
+                    // TODO fromF64, check subnormal, use f64 mantissa and exponent
                     int rem = PRECISION;
                     if (flt >= 1) {
                         rem -= (int) Math.ceil(Math.log10(flt));
@@ -552,7 +552,7 @@ public class Decimal64 {
                         return ZERO;
                     }
 
-                    // TODO use custom parsing
+                    // TODO fromString, use custom parsing
                     return Decimal64.Internal.Convert.Str.fromStringFinite(str, head, tail - head);
                 }
 
@@ -603,7 +603,7 @@ public class Decimal64 {
 
                 public static void toString(long decimal, @NotNull ByteBuffer out) {
                     if (!isFinite(decimal)) {
-                        // TODO: could optimize with putLong etc.
+                        // TODO: toString, could optimize with putLong etc.
                         if (decimal == NAN) {
                             out.put(NAN_ASCII);
                         } else if (decimal == NEGATIVE_INFINITY) {
