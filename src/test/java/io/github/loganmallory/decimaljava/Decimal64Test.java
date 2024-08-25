@@ -2,6 +2,8 @@ package io.github.loganmallory.decimaljava;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -19,13 +21,14 @@ import static io.github.loganmallory.decimaljava.Decimal64.Internal.Data.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+
 public class Decimal64Test {
 
     // e.g. `mvn clean package -DDECIMAL64_TEST_FUZZ_N=1000`
     // 100m takes ~20 minutes
     // 10m  takes ~2 minutes
     // 1m   takes ~20 seconds
-    public static final int FUZZ_N = Integer.getInteger("DECIMAL64_TEST_FUZZ_N", 1_000_000);
+    public static final int FUZZ_N = Integer.getInteger("DECIMAL64_TEST_FUZZ_N", 100_000_000);
 
     public static final long RNG_SEED = 111;
 
@@ -215,22 +218,22 @@ public class Decimal64Test {
                 {
                     // valid
                     long x = makeUnsafe(mantissa, exponent);
-                    assertDoesNotThrow(() -> validate(x), Decimal64.Internal.Debug.triplet(x));
-                    assertDoesNotThrow(() -> validateFinite(x), Decimal64.Internal.Debug.triplet(x));
+                    assertDoesNotThrow(() -> validate(x), Internal.Debug.triplet(x));
+                    assertDoesNotThrow(() -> validateFinite(x), Internal.Debug.triplet(x));
                 }
 
                 {
                     // invalid special exponent
                     long x = makeUnsafe(mantissa == 0 ? 1 : mantissa, -256);
-                    var ex = assertThrows(RuntimeException.class, () -> validate(x), Decimal64.Internal.Debug.triplet(x));
-                    assertEquals("Decimal " + Decimal64.Internal.Debug.triplet(x) + " has special exponent -256 but isn't NaN or -/+ Infinity", ex.getMessage(), Decimal64.Internal.Debug.triplet(x));
+                    var ex = assertThrows(RuntimeException.class, () -> validate(x), Internal.Debug.triplet(x));
+                    assertEquals("Decimal " + Internal.Debug.triplet(x) + " has special exponent -256 but isn't NaN or -/+ Infinity", ex.getMessage(), Internal.Debug.triplet(x));
                 }
 
                 {
                     // invalid large exponent
                     long x = makeUnsafe(mantissa == 0 ? 1 : mantissa, -256);
-                    var ex = assertThrows(RuntimeException.class, () -> validateFinite(x), Decimal64.Internal.Debug.triplet(x));
-                    assertEquals("Decimal " + Decimal64.Internal.Debug.triplet(x) + " exponent is out of range [-255, 255]", ex.getMessage(), Decimal64.Internal.Debug.triplet(x));
+                    var ex = assertThrows(RuntimeException.class, () -> validateFinite(x), Internal.Debug.triplet(x));
+                    assertEquals("Decimal " + Internal.Debug.triplet(x) + " exponent is out of range [-255, 255]", ex.getMessage(), Internal.Debug.triplet(x));
                 }
 
                 {
@@ -238,28 +241,28 @@ public class Decimal64Test {
                     if (mantissa == 0) {
                         // zero mantissa with nonzero exponent
                         long x = makeUnsafe(mantissa, exponent == 0 ? 1 : exponent);
-                        var ex = assertThrows(RuntimeException.class, () -> validate(x), Decimal64.Internal.Debug.triplet(x));
-                        assertEquals("Decimal " + Decimal64.Internal.Debug.triplet(x) + " is ambiguous, exponent should be zero", ex.getMessage(), Decimal64.Internal.Debug.triplet(x));
+                        var ex = assertThrows(RuntimeException.class, () -> validate(x), Internal.Debug.triplet(x));
+                        assertEquals("Decimal " + Internal.Debug.triplet(x) + " is ambiguous, exponent should be zero", ex.getMessage(), Internal.Debug.triplet(x));
                     } else {
                         // invalid mantissa, trailing zeros
                         long x = makeUnsafe(mantissa, exponent);
-                        var ex = assertThrows(RuntimeException.class, () -> validate(x), Decimal64.Internal.Debug.triplet(x));
-                        assertEquals("Decimal " + Decimal64.Internal.Debug.triplet(x) + " mantissa has trailing zeros", ex.getMessage(), Decimal64.Internal.Debug.triplet(x));
+                        var ex = assertThrows(RuntimeException.class, () -> validate(x), Internal.Debug.triplet(x));
+                        assertEquals("Decimal " + Internal.Debug.triplet(x) + " mantissa has trailing zeros", ex.getMessage(), Internal.Debug.triplet(x));
                     }
                 }
 
                 {
                     // invalid mantissa, exceeds max
                     long x = makeUnsafe(MAX_MANTISSA + 1, exponent);
-                    var ex = assertThrows(RuntimeException.class, () -> validate(x), Decimal64.Internal.Debug.triplet(x));
-                    assertEquals("Decimal " + Decimal64.Internal.Debug.triplet(x) + " mantissa is out of range [-9999999999999999, 9999999999999999]", ex.getMessage(), Decimal64.Internal.Debug.triplet(x));
+                    var ex = assertThrows(RuntimeException.class, () -> validate(x), Internal.Debug.triplet(x));
+                    assertEquals("Decimal " + Internal.Debug.triplet(x) + " mantissa is out of range [-9999999999999999, 9999999999999999]", ex.getMessage(), Internal.Debug.triplet(x));
                 }
 
                 {
                     // invalid mantissa, exceeds min
                     long x = makeUnsafe(MIN_MANTISSA - 1, exponent);
-                    var ex = assertThrows(RuntimeException.class, () -> validate(x), Decimal64.Internal.Debug.triplet(x));
-                    assertEquals("Decimal " + Decimal64.Internal.Debug.triplet(x) + " mantissa is out of range [-9999999999999999, 9999999999999999]", ex.getMessage(), Decimal64.Internal.Debug.triplet(x));
+                    var ex = assertThrows(RuntimeException.class, () -> validate(x), Internal.Debug.triplet(x));
+                    assertEquals("Decimal " + Internal.Debug.triplet(x) + " mantissa is out of range [-9999999999999999, 9999999999999999]", ex.getMessage(), Internal.Debug.triplet(x));
                 }
             });
         }
@@ -421,7 +424,71 @@ public class Decimal64Test {
 
             @Nested
             class ToI64 {
-                // TODO test toI64
+
+                @Test
+                public void nan() {
+                    var ex = assertThrows(RuntimeException.class, () -> toI64(NAN));
+                    assertEquals("Can't convert non-finite decimal to i64: NaN", ex.getMessage());
+                }
+
+                @Test
+                public void negative_infinity() {
+                    var ex = assertThrows(RuntimeException.class, () -> toI64(NEGATIVE_INFINITY));
+                    assertEquals("Can't convert non-finite decimal to i64: -Infinity", ex.getMessage());
+                }
+
+                @Test
+                public void positive_infinity() {
+                    var ex = assertThrows(RuntimeException.class, () -> toI64(POSITIVE_INFINITY));
+                    assertEquals("Can't convert non-finite decimal to i64: +Infinity", ex.getMessage());
+                }
+
+                @Test
+                public void zero() {
+                    assertEquals(0, toI64(ZERO));
+                }
+
+                @Test
+                public void one() {
+                    assertEquals(1, toI64(ONE));
+                }
+
+                @Test
+                public void case_0000() {
+                    var x = fromParts(5, 1);
+                    assertEquals(0, toI64(x));
+                }
+
+                @Test
+                public void case_0001() {
+                    var x = fromParts(-15, 1);
+                    assertEquals(-2, toI64(x));
+                }
+
+                @Test
+                public void case_0002() {
+                    var x = fromParts(-67, 1);
+                    assertEquals(-7, toI64(x));
+                }
+
+                @Test
+                public void case_0003() {
+                    var x = fromParts(-95, 1);
+                    assertEquals(-10, toI64(x));
+                }
+
+                @Test
+                public void random() {
+                    fuzz(FUZZ_N, decimal -> {
+                        try {
+                            var expected = toBigDecimal(decimal).setScale(0, RoundingMode.HALF_EVEN).longValueExact();
+                            assertEquals(expected, toI64(decimal), triplet(decimal));
+                        } catch (ArithmeticException e) {
+                            var ex = assertThrows(RuntimeException.class, () -> toI64(decimal));
+                            assertEquals("Decimal is too large to convert to i64: " + Decimal64.toString(decimal), ex.getMessage());
+                        }
+                    });
+                }
             }
         }
 
@@ -430,6 +497,7 @@ public class Decimal64Test {
 
             @Nested
             class FromI32 {
+
                 @Test
                 public void case_0000() {
                     var x = fromI32(0);
@@ -497,7 +565,78 @@ public class Decimal64Test {
 
             @Nested
             class ToI32 {
-                // TODO test toI32
+
+                @Test
+                public void nan() {
+                    var ex = assertThrows(RuntimeException.class, () -> toI32(NAN));
+                    assertEquals("Can't convert non-finite decimal to i32: NaN", ex.getMessage());
+                }
+
+                @Test
+                public void negative_infinity() {
+                    var ex = assertThrows(RuntimeException.class, () -> toI32(NEGATIVE_INFINITY));
+                    assertEquals("Can't convert non-finite decimal to i32: -Infinity", ex.getMessage());
+                }
+
+                @Test
+                public void positive_infinity() {
+                    var ex = assertThrows(RuntimeException.class, () -> toI32(POSITIVE_INFINITY));
+                    assertEquals("Can't convert non-finite decimal to i32: +Infinity", ex.getMessage());
+                }
+
+                @Test
+                public void zero() {
+                    assertEquals(0, toI32(ZERO));
+                }
+
+                @Test
+                public void one() {
+                    assertEquals(1, toI32(ONE));
+                }
+
+                @Test
+                public void case_0000() {
+                    var x = fromParts(5, 1);
+                    assertEquals(0, toI32(x));
+                }
+
+                @Test
+                public void case_0001() {
+                    var x = fromParts(-15, 1);
+                    assertEquals(-2, toI32(x));
+                }
+
+                @Test
+                public void case_0002() {
+                    var x = fromParts(-67, 1);
+                    assertEquals(-7, toI32(x));
+                }
+
+                @Test
+                public void case_0003() {
+                    var x = fromParts(-95, 1);
+                    assertEquals(-10, toI32(x));
+                }
+
+                @Test
+                public void case_0004() {
+                    var x = fromParts(-6065340641L, 0);
+                    var ex = assertThrows(RuntimeException.class, () -> toI32(x));
+                    assertEquals("Decimal is too large to convert to i32: -6065340641", ex.getMessage());
+                }
+
+                @Test
+                public void random() {
+                    fuzz(FUZZ_N, decimal -> {
+                        try {
+                            var expected = toBigDecimal(decimal).setScale(0, RoundingMode.HALF_EVEN).intValueExact();
+                            assertEquals(expected, toI32(decimal), triplet(decimal));
+                        } catch (ArithmeticException e) {
+                            var ex = assertThrows(RuntimeException.class, () -> toI32(decimal), triplet(decimal));
+                            assertEquals("Decimal is too large to convert to i32: " + Decimal64.toString(decimal), ex.getMessage());
+                        }
+                    });
+                }
             }
         }
 
@@ -591,9 +730,9 @@ public class Decimal64Test {
                     var rng = new Random(RNG_SEED);
                     rng.doubles(FUZZ_N, Double.MIN_VALUE, Double.MAX_VALUE).forEach(flt -> {
                         String expected;
-                        if (Math.abs(flt) > Decimal64.Internal.Convert.F64.MAX_REPRESENTABLE_F64) {
+                        if (Math.abs(flt) > Internal.Convert.F64.MAX_REPRESENTABLE_F64) {
                             expected = flt > 0 ? "+Infinity" : "-Infinity";
-                        } else if (Math.abs(flt) < Decimal64.Internal.Convert.F64.MIN_REPRESENTABLE_F64) {
+                        } else if (Math.abs(flt) < Internal.Convert.F64.MIN_REPRESENTABLE_F64) {
                             expected = "0";
                         } else {
                             expected = BigDecimal.valueOf(flt).round(MathContext.DECIMAL64).stripTrailingZeros().toPlainString();
@@ -701,19 +840,19 @@ public class Decimal64Test {
                 @Test
                 public void nan() {
                     var ex = assertThrows(RuntimeException.class, () -> toBigDecimal(NAN));
-                    assertEquals("Can't convert non-finite decimal (256, 0, -256) to BigDecimal", ex.getMessage());
+                    assertEquals("Can't convert non-finite decimal NaN to BigDecimal", ex.getMessage());
                 }
 
                 @Test
                 public void negative_infinity() {
                     var ex = assertThrows(RuntimeException.class, () -> toBigDecimal(NEGATIVE_INFINITY));
-                    assertEquals("Can't convert non-finite decimal (-9223372036854775040, -18014398509481983, -256) to BigDecimal", ex.getMessage());
+                    assertEquals("Can't convert non-finite decimal -Infinity to BigDecimal", ex.getMessage());
                 }
 
                 @Test
                 public void positive_infinity() {
                     var ex = assertThrows(RuntimeException.class, () -> toBigDecimal(POSITIVE_INFINITY));
-                    assertEquals("Can't convert non-finite decimal (9223372036854775552, 18014398509481983, -256) to BigDecimal", ex.getMessage());
+                    assertEquals("Can't convert non-finite decimal +Infinity to BigDecimal", ex.getMessage());
                 }
 
                 @Test
@@ -3326,6 +3465,61 @@ public class Decimal64Test {
                     // normal finite result
                     assertEquals(expected, toBigDecimal(div(a, b)), () -> Decimal64.toString(a) + " / " + Decimal64.toString(b));
                 });
+            }
+
+            @Nested
+            class Round {
+
+                @Test
+                public void nan() {
+                    var ex = assertThrows(IllegalArgumentException.class, () -> round(NAN, 0));
+                    assertEquals("Can't convert non-finite decimal NaN to BigDecimal", ex.getMessage());
+                }
+
+                @Test
+                public void negative_infinity() {
+                    var ex = assertThrows(IllegalArgumentException.class, () -> round(NEGATIVE_INFINITY, 0));
+                    assertEquals("Can't convert non-finite decimal -Infinity to BigDecimal", ex.getMessage());
+                }
+
+                @Test
+                public void positive_infinity() {
+                    var ex = assertThrows(IllegalArgumentException.class, () -> round(POSITIVE_INFINITY, 0));
+                    assertEquals("Can't convert non-finite decimal +Infinity to BigDecimal", ex.getMessage());
+                }
+
+                @Test
+                public void zero() {
+                    assertEquals(ZERO, round(ZERO, 0));
+                }
+
+                @Test
+                public void one() {
+                    assertEquals(ONE, round(ONE, 0));
+                }
+
+                @Test
+                public void case_0001() {
+                    assertEquals(ZERO, round(ONE, -1));
+                }
+
+                @Test
+                public void case_0002() {
+                    var x = fromParts(314159, 5);
+                    var expected = fromParts(314, 2);
+                    assertEquals(expected, round(x, 2));
+                }
+
+                @Test
+                public void random() {
+                    fuzz(FUZZ_N, decimal -> {
+                        int exponent = (int) (decimal % 300);
+                        var bigDecimal = toBigDecimal(decimal).setScale(exponent, RoundingMode.HALF_EVEN);
+                        var expected = fromBigDecimal(bigDecimal);
+
+                        assertEquals(expected, round(decimal, exponent));
+                    });
+                }
             }
         }
     }
