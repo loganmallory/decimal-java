@@ -7,3 +7,6 @@ target/
 
 # test coverage
 htmlReport/
+
+# finder metadata
+**.DS_Store
