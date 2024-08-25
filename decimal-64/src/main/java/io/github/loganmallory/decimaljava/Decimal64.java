@@ -1,5 +1,6 @@
 package io.github.loganmallory.decimaljava;
 
+import io.github.loganmallory.decimaljava.annotations.Decimal;
 import org.jetbrains.annotations.NotNull;
 
 import java.math.BigDecimal;
@@ -1214,5 +1215,21 @@ public class Decimal64 {
 
     public static long round(long decimal, int exponent) {
         return Internal.Maths.Round.round(decimal, exponent);
+    }
+
+    public static void print(@Decimal long decimal) {
+        System.out.println("decimal = " + Decimal64.toString(decimal));
+    }
+
+    public static void pass() {
+        long a = 0;
+        print(a);
+    }
+
+    public static void main(String[] args) {
+        long decimal = ZERO;
+        decimal += 1;
+        print(decimal);
+        pass();
     }
 }
