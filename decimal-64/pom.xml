@@ -31,21 +31,24 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Enable the @Decimal annotation and compile time checks -->
         <dependency>
             <groupId>org.checkerframework</groupId>
             <artifactId>checker-qual</artifactId>
             <version>3.45.0</version>
+            <scope>compile</scope>
         </dependency>
-
         <dependency>
             <groupId>org.checkerframework</groupId>
             <artifactId>checker</artifactId>
             <version>3.45.0</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>io.github.loganmallory</groupId>
             <artifactId>decimal-annotations</artifactId>
             <version>0.0.0-SNAPSHOT</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 
@@ -60,13 +63,19 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+
+                    <!-- must fork for <compilerArgs> -->
                     <fork>true</fork>
+
+                    <!-- , and load the @Decimal annotation from the decimal-annotations jar -->
                     <annotationProcessorPaths>
+                        <!-- load checker so @Decimal works -->
                         <path>
                             <groupId>org.checkerframework</groupId>
                             <artifactId>checker</artifactId>
                             <version>3.45.0</version>
                         </path>
+                        <!-- place @Decimal on the -processorpath -->
                         <dependency>
                             <groupId>io.github.loganmallory</groupId>
                             <artifactId>decimal-annotations</artifactId>
@@ -74,6 +83,7 @@
                         </dependency>
                     </annotationProcessorPaths>
                     <compilerArgs>
+                        <!-- open for org.checkerframework -->
                         <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>
                         <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
                         <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
@@ -84,6 +94,7 @@
                         <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
                         <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
                         <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.jvm=ALL-UNNAMED</arg>
+                        <!-- apply the @Decimal type checking-->
                         <arg>-processor</arg>
                         <arg>org.checkerframework.checker.fenum.FenumChecker</arg>
                         <arg>-Aquals=io.github.loganmallory.decimaljava.annotations.Decimal</arg>

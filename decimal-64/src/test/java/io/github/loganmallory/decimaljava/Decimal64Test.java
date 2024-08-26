@@ -1,5 +1,6 @@
 package io.github.loganmallory.decimaljava;
 
+import io.github.loganmallory.decimaljava.annotations.Decimal;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -19,22 +20,22 @@ import static io.github.loganmallory.decimaljava.Decimal64.Internal.Data.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-
+@SuppressWarnings({"fenum:argument"})
 public class Decimal64Test {
 
     // e.g. `mvn clean package -DDECIMAL64_TEST_FUZZ_N=1000`
-    // 100m takes ~20 minutes
-    // 10m  takes ~2 minutes
-    // 1m   takes ~20 seconds
-    public static final int FUZZ_N = Integer.getInteger("DECIMAL64_TEST_FUZZ_N", 1_000_000);
+    // 100m takes ~7 minutes
+    // 10m  takes ~40 seconds
+    // 1m   takes ~5 seconds
+    public static final int FUZZ_N = Integer.getInteger("DECIMAL64_TEST_FUZZ_N", 100_000_000);
 
     public static final long RNG_SEED = 111;
 
-    private static void assertDecEquals(long expectedDecimal, long actualDecimal) {
+    private static void assertDecEquals(@Decimal long expectedDecimal, @Decimal long actualDecimal) {
         assertEquals(expectedDecimal, actualDecimal, () -> "expected: " + triplet(expectedDecimal) + ", got: " + triplet(actualDecimal));
     }
 
-    private static void assertDecEquals(long expectedDecimal, long actualDecimal, Supplier<Object> input) {
+    private static void assertDecEquals(@Decimal long expectedDecimal, @Decimal long actualDecimal, Supplier<Object> input) {
         assertEquals(expectedDecimal, actualDecimal, () -> "input: " + input.get() + ", expected: " + triplet(expectedDecimal) + ", got: " + triplet(actualDecimal));
     }
 
@@ -59,7 +60,7 @@ public class Decimal64Test {
         }
     }
 
-    private static void fuzz(int n, Consumer<Long> decimalConsumer) {
+    private static void fuzz(int n, Consumer<@Decimal Long> decimalConsumer) {
         var rng = new Random(RNG_SEED);
         enumerate_bounds(n, 17, 255, (mantissaBound, exponentBound) -> {
             mantissaBound = Math.min(MAX_MANTISSA, mantissaBound);
@@ -68,7 +69,7 @@ public class Decimal64Test {
         });
     }
 
-    private static void fuzz(int n, BiConsumer<Long, Long> twoDecimalsConsumer) {
+    private static void fuzz(int n, BiConsumer<@Decimal Long, @Decimal Long> twoDecimalsConsumer) {
         var rng = new Random(RNG_SEED);
         enumerate_bounds(n, 17, 255, (mantissaBound, exponentBound) -> {
             mantissaBound = Math.min(MAX_MANTISSA, mantissaBound);
@@ -3509,6 +3510,7 @@ public class Decimal64Test {
                 }
 
                 @Test
+                @SuppressWarnings("fenum:binary")
                 public void random() {
                     fuzz(FUZZ_N, decimal -> {
                         int exponent = (int) (decimal % 300);

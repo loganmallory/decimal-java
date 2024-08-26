@@ -17,22 +17,22 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 public class Decimal64 {
 
     /** The bit pattern for a NaN Decimal, where mantissa=0, and exponent=-256. */
-    public static final long NAN = makeUnsafe(0, SPECIAL_EXPONENT);
+    public static final @Decimal long NAN = makeUnsafe(0, SPECIAL_EXPONENT);
 
     /** The bit pattern for a -Inf Decimal, where mantissa=-2^54-1, and exponent=-256. */
-    public static final long NEGATIVE_INFINITY = makeUnsafe(-((1L<<(N_MANTISSA_BITS-1))-1), SPECIAL_EXPONENT);
+    public static final @Decimal long NEGATIVE_INFINITY = makeUnsafe(-((1L<<(N_MANTISSA_BITS-1))-1), SPECIAL_EXPONENT);
 
     /** The bit pattern for a +Inf Decimal, where mantissa=2^54-1, and exponent=-256. */
-    public static final long POSITIVE_INFINITY = makeUnsafe((1L<<(N_MANTISSA_BITS-1))-1, SPECIAL_EXPONENT);
+    public static final @Decimal long POSITIVE_INFINITY = makeUnsafe((1L<<(N_MANTISSA_BITS-1))-1, SPECIAL_EXPONENT);
 
     /** The bit pattern for a zero-value Decimal, where mantissa=0, and exponent=0. */
-    public static final long ZERO = 0;
+    public static final @Decimal long ZERO = makeUnsafe(0, 0);
 
     /** The bit pattern for a one-value Decimal, where mantissa=0, and exponent=0. */
-    public static final long ONE = makeUnsafe(1, 0);
+    public static final @Decimal long ONE = makeUnsafe(1, 0);
 
     /** The bit pattern for a two-value Decimal, where mantissa=0, and exponent=0. */
-    public static final long TWO = makeUnsafe(2, 0);
+    public static final @Decimal long TWO = makeUnsafe(2, 0);
 
     /**
      * A container class for internal methods and values.
@@ -67,7 +67,7 @@ public class Decimal64 {
 
         /**
          * The most negative value the mantissa can have.
-         * See {@link Decimal64.Internal#MAX_MANTISSA}
+         * See {@link Internal#MAX_MANTISSA}
          */
         public static final long MIN_MANTISSA = -9_999_999_999_999_999L;
 
@@ -80,7 +80,7 @@ public class Decimal64 {
 
         /**
          * The most negative value the mantissa can have.
-         * See {@link Decimal64.Internal#MAX_EXPONENT}
+         * See {@link Internal#MAX_EXPONENT}
          */
         public static final int MIN_EXPONENT = -255;
 
@@ -118,15 +118,18 @@ public class Decimal64 {
              * @param exponent The exponent for the Decimal
              * @return A 64 bit Decimal representing: mantissa * 10^-exponent
              */
-            public static long makeUnsafe(long mantissa, int exponent) {
-                return (mantissa << 9) | (exponent & EXPONENT_MASK_i32);
+            @SuppressWarnings("fenum:assignment")
+            public static @Decimal long makeUnsafe(long mantissa, int exponent) {
+                @Decimal long decimal = (mantissa << 9) | (exponent & EXPONENT_MASK_i32);
+                return decimal;
             }
 
             /**
              * Returns a new Decimal with the given mantissa.
              * <h1>Unsafe: Does not validate inputs</h1>
              */
-            public static long setMantissa(long decimal, long mantissa) {
+            @SuppressWarnings("fenum:compound.assignment")
+            public static @Decimal long setMantissa(@Decimal long decimal, long mantissa) {
                 decimal &= EXPONENT_MASK_i32; // zero out mantissa
                 decimal |= (mantissa << N_EXPONENT_BITS);
                 return decimal;
@@ -136,7 +139,8 @@ public class Decimal64 {
              * Returns a new Decimal with the given exponent.
              * <h1>Unsafe: Does not validate inputs</h1>
              */
-            public static long setExponent(long decimal, int exponent) {
+            @SuppressWarnings("fenum:compound.assignment")
+            public static @Decimal long setExponent(@Decimal long decimal, int exponent) {
                 decimal &= ~EXPONENT_MASK_i32; // zero out exponent
                 decimal |= (exponent & EXPONENT_MASK_i32);
                 return decimal;
@@ -145,21 +149,24 @@ public class Decimal64 {
             /**
              * Get the mantissa from a Decimal's bits.
              */
-            public static long getMantissa(long decimal) {
+            @SuppressWarnings({"fenum:binary", "fenum:return"})
+            public static long getMantissa(@Decimal long decimal) {
                 return decimal >> N_EXPONENT_BITS;
             }
 
             /**
              * Get the exponent from a Decimal's bits.
              */
-            public static int getExponent(long decimal) {
+            @SuppressWarnings({"fenum:binary", "fenum:return"})
+            public static int getExponent(@Decimal long decimal) {
                 int exp = (int) (decimal & EXPONENT_MASK_i32);
                 // extend the sign bit
                 exp = ((exp << EXPONENT_SIGN_SHIFT_i32) >> EXPONENT_SIGN_SHIFT_i32);
                 return exp;
             }
 
-            public static boolean isFinite(long decimal) {
+            @SuppressWarnings({"fenum:binary", "fenum:return"})
+            public static boolean isFinite(@Decimal long decimal) {
                 // shortcuts getExponent(..) to check unsigned exponent
                 return (decimal & EXPONENT_MASK_i32) != 256;
             }
@@ -167,15 +174,16 @@ public class Decimal64 {
 
         public static class Debug {
 
-            public static String tuple(long decimal) {
+            public static String tuple(@Decimal long decimal) {
                 return "(" + getMantissa(decimal) + ", " + getExponent(decimal) + ")";
             }
 
-            public static String triplet(long decimal) {
+            @SuppressWarnings("fenum:return")
+            public static String triplet(@Decimal long decimal) {
                 return "(" + decimal + ", " + getMantissa(decimal) + ", " + getExponent(decimal) + ")";
             }
 
-            public static void validate(long decimal) {
+            public static void validate(@Decimal long decimal) {
                 if (getExponent(decimal) == -256) {
                     if (decimal != NAN && decimal != NEGATIVE_INFINITY && decimal != POSITIVE_INFINITY) {
                         throw new RuntimeException("Decimal " + triplet(decimal) + " has special exponent -256 but isn't NaN or -/+ Infinity");
@@ -185,7 +193,7 @@ public class Decimal64 {
                 }
             }
 
-            public static void validateFinite(long decimal) {
+            public static void validateFinite(@Decimal long decimal) {
                 // check mantissa
                 long mantissa = getMantissa(decimal);
                 if (mantissa < MIN_MANTISSA || mantissa > MAX_MANTISSA) {
@@ -214,7 +222,7 @@ public class Decimal64 {
                  * Creates a Decimal from the given mantissa and exponent.
                  * The value will overflow to -/+ Inf, and underflow to 0.
                  */
-                public static long fromParts(long mantissa, int exponent) {
+                public static @Decimal long fromParts(long mantissa, int exponent) {
                     // fast path zero
                     if (mantissa == 0) {
                         return ZERO;
@@ -230,7 +238,7 @@ public class Decimal64 {
                     return fromPartsPossibleFlowNoZero(mantissa, exponent);
                 }
 
-                public static long fromPartsFiniteLessThan16DigitsNoFlowNoZero(long mantissa, int exponent) {
+                public static @Decimal long fromPartsFiniteLessThan16DigitsNoFlowNoZero(long mantissa, int exponent) {
                     assert FastMath.nDigits(mantissa) <= 16 : "mantissa must be <= 16 digits";
                     assert mantissa != 0 : "mantissa must not be 0";
                     assert exponent <= 255 : "mantissa must be <= 255";
@@ -248,7 +256,7 @@ public class Decimal64 {
                     return makeUnsafe(mantissa, exponent);
                 }
 
-                public static long fromPartsPossibleFlowNoZero(long mantissa, int exponent) {
+                public static @Decimal long fromPartsPossibleFlowNoZero(long mantissa, int exponent) {
                     if (exponent < MIN_EXPONENT) {
                         // overflow guaranteed
                         return mantissa > 0 ? POSITIVE_INFINITY : NEGATIVE_INFINITY;
@@ -321,13 +329,13 @@ public class Decimal64 {
 
             public static class I64 {
 
-                public static long fromI64(long integer) {
+                public static @Decimal long fromI64(long integer) {
                     return fromParts(integer, 0);
                 }
 
-                public static long toI64(long decimal) {
+                public static long toI64(@Decimal long decimal) {
                     if (!Decimal64.isFinite(decimal)) {
-                        throw new IllegalArgumentException("Can't convert non-finite decimal to i64: " + Internal.Convert.Str.toString(decimal));
+                        throw new IllegalArgumentException("Can't convert non-finite decimal to i64: " + Str.toString(decimal));
                     }
 
                     int exponent = getExponent(decimal);
@@ -339,15 +347,15 @@ public class Decimal64 {
                     }
 
                     int sign = 1;
-                    if (decimal < 0) {
+                    if (Internal.Compare.DecimalVsZero.ltZero(decimal)) {
                         sign = -1;
-                        decimal = Internal.Maths.negate(decimal);
+                        decimal = Maths.negate(decimal);
                     }
 
-                    if (Internal.Compare.DecimalVsDecimal.compareFinite(decimal, ONE) < 0) {
+                    if (Compare.DecimalVsDecimal.compareFinite(decimal, ONE) < 0) {
                         // decimal is between (0, 1)
                         long half = makeUnsafe(5, 1);
-                        if (Internal.Compare.DecimalVsDecimal.compareFinite(decimal, half) <= 0) {
+                        if (Compare.DecimalVsDecimal.compareFinite(decimal, half) <= 0) {
                             // decimal between (0, 0.5]
                             return 0;
                         }
@@ -356,10 +364,10 @@ public class Decimal64 {
                     }
 
                     long i64Max = makeUnsafe(9223372036854775L, -3);
-                    if (Internal.Compare.DecimalVsDecimal.compareFinite(decimal, i64Max) <= 0) {
+                    if (Compare.DecimalVsDecimal.compareFinite(decimal, i64Max) <= 0) {
                         if (exponent > 0) {
                             // decimal is like 1.23
-                            decimal = Internal.Maths.Round.round(decimal, 0);
+                            decimal = Maths.Round.round(decimal, 0);
                             mantissa = getMantissa(decimal) * sign;
                             exponent = getExponent(decimal);
                         }
@@ -367,19 +375,19 @@ public class Decimal64 {
                         return mantissa * FastMath.i64TenToThe(-exponent);
                     }
 
-                    throw new ArithmeticException("Decimal is too large to convert to i64: " + (sign < 0 ? "-" : "") + Internal.Convert.Str.toString(decimal));
+                    throw new ArithmeticException("Decimal is too large to convert to i64: " + (sign < 0 ? "-" : "") + Str.toString(decimal));
                 }
             }
 
             public static class I32 {
 
-                public static long fromI32(int integer) {
+                public static @Decimal long fromI32(int integer) {
                     return fromParts(integer, 0);
                 }
 
-                public static long toI32(long decimal) {
+                public static long toI32(@Decimal long decimal) {
                     if (!Decimal64.isFinite(decimal)) {
-                        throw new IllegalArgumentException("Can't convert non-finite decimal to i32: " + Internal.Convert.Str.toString(decimal));
+                        throw new IllegalArgumentException("Can't convert non-finite decimal to i32: " + Str.toString(decimal));
                     }
 
                     int exponent = getExponent(decimal);
@@ -388,21 +396,21 @@ public class Decimal64 {
                     if (exponent == 0) {
                         // decimal is an integer <= 16 digits
                         if (mantissa < Integer.MIN_VALUE || mantissa > Integer.MAX_VALUE) {
-                            throw new ArithmeticException("Decimal is too large to convert to i32: " + Internal.Convert.Str.toString(decimal));
+                            throw new ArithmeticException("Decimal is too large to convert to i32: " + Str.toString(decimal));
                         }
                         return mantissa;
                     }
 
                     int sign = 1;
-                    if (decimal < 0) {
+                    if (Internal.Compare.DecimalVsZero.ltZero(decimal)) {
                         sign = -1;
-                        decimal = Internal.Maths.negate(decimal);
+                        decimal = Maths.negate(decimal);
                     }
 
-                    if (Internal.Compare.DecimalVsDecimal.compareFinite(decimal, ONE) < 0) {
+                    if (Compare.DecimalVsDecimal.compareFinite(decimal, ONE) < 0) {
                         // decimal is between (0, 1)
                         long half = makeUnsafe(5, 1);
-                        if (Internal.Compare.DecimalVsDecimal.compareFinite(decimal, half) <= 0) {
+                        if (Compare.DecimalVsDecimal.compareFinite(decimal, half) <= 0) {
                             // decimal between (0, 0.5]
                             return 0;
                         }
@@ -411,10 +419,10 @@ public class Decimal64 {
                     }
 
                     long i32Max = makeUnsafe(2147483647, 0);
-                    if (Internal.Compare.DecimalVsDecimal.compareFinite(decimal, i32Max) <= 0) {
+                    if (Compare.DecimalVsDecimal.compareFinite(decimal, i32Max) <= 0) {
                         if (exponent > 0) {
                             // decimal is like 1.23
-                            decimal = Internal.Maths.Round.round(decimal, 0);
+                            decimal = Maths.Round.round(decimal, 0);
                             mantissa = getMantissa(decimal) * sign;
                             exponent = getExponent(decimal);
                         }
@@ -422,7 +430,7 @@ public class Decimal64 {
                         return mantissa * FastMath.i64TenToThe(-exponent);
                     }
 
-                    throw new ArithmeticException("Decimal is too large to convert to i32: " + (sign < 0 ? "-" : "") + Internal.Convert.Str.toString(decimal));
+                    throw new ArithmeticException("Decimal is too large to convert to i32: " + (sign < 0 ? "-" : "") + Str.toString(decimal));
                 }
             }
 
@@ -431,22 +439,21 @@ public class Decimal64 {
                 public static final double MIN_REPRESENTABLE_F64 = 1e-255;
                 public static final double MAX_REPRESENTABLE_F64 = 9_999_999_999_999_999e255;
 
-                public static long fromF64(double flt) {
+                public static @Decimal long fromF64(double flt) {
                     if (!Double.isFinite(flt)) {
                         return fromF64NonFinite(flt);
                     }
                     return fromF64Finite(flt);
-
                 }
 
-                public static long fromF64NonFinite(double flt) {
+                public static @Decimal long fromF64NonFinite(double flt) {
                     if (flt != flt) {
                         return NAN;
                     }
                     return flt > 0 ? POSITIVE_INFINITY : NEGATIVE_INFINITY;
                 }
 
-                public static long fromF64Finite(double flt) {
+                public static @Decimal long fromF64Finite(double flt) {
                     int sign = 1;
                     if (flt < 0) {
                         sign = -1;
@@ -472,21 +479,21 @@ public class Decimal64 {
                     return fromParts(mantissa * sign, rem);
                 }
 
-                public static double toF64(long decimal) {
+                public static double toF64(@Decimal long decimal) {
                     if (!isFinite(decimal)) {
                         return toF64NonFinite(decimal);
                     }
                     return toF64Finite(decimal);
                 }
 
-                public static double toF64NonFinite(long decimal) {
+                public static double toF64NonFinite(@Decimal long decimal) {
                     if (decimal == NAN) {
                         return Double.NaN;
                     }
-                    return decimal > 0 ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY;
+                    return Internal.Compare.DecimalVsZero.gtZero(decimal) ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY;
                 }
 
-                public static double toF64Finite(long decimal) {
+                public static double toF64Finite(@Decimal long decimal) {
                     long mantissa = getMantissa(decimal);
                     int exponent = getExponent(decimal);
 
@@ -510,16 +517,16 @@ public class Decimal64 {
             }
 
             public static class BigDec {
-                public static long fromBigDecimal(@NotNull BigDecimal bigDecimal) {
+                public static @Decimal long fromBigDecimal(@NotNull BigDecimal bigDecimal) {
                     if (bigDecimal.precision() > PRECISION) {
                         bigDecimal = bigDecimal.round(MathContext.DECIMAL64); // TODO: this is amazingly slow
                     }
                     return fromParts(bigDecimal.unscaledValue().longValue(), bigDecimal.scale());
                 }
 
-                public static @NotNull BigDecimal toBigDecimal(long decimal) {
+                public static @NotNull BigDecimal toBigDecimal(@Decimal long decimal) {
                     if (!isFinite(decimal)) {
-                        throw new IllegalArgumentException("Can't convert non-finite decimal " + Internal.Convert.Str.toString(decimal) + " to BigDecimal");
+                        throw new IllegalArgumentException("Can't convert non-finite decimal " + Str.toString(decimal) + " to BigDecimal");
                     }
                     return BigDecimal.valueOf(getMantissa(decimal), getExponent(decimal));
                 }
@@ -527,12 +534,12 @@ public class Decimal64 {
 
             public static class Str {
 
-                public static long fromString(@NotNull CharSequence str) {
-                    return Decimal64.Internal.Convert.Str.fromString(str, 0, str.length());
+                public static @Decimal long fromString(@NotNull CharSequence str) {
+                    return Str.fromString(str, 0, str.length());
                 }
 
-                public static long fromString(@NotNull CharSequence str, int offset) {
-                    return Decimal64.Internal.Convert.Str.fromString(str, offset, str.length() - offset);
+                public static @Decimal long fromString(@NotNull CharSequence str, int offset) {
+                    return Str.fromString(str, offset, str.length() - offset);
                 }
 
                 /** Wrapper for ByteBuffer that implements CharSequence */
@@ -569,12 +576,12 @@ public class Decimal64 {
                     }
                 }
 
-                public static long fromString(@NotNull ByteBuffer str) {
+                public static @Decimal long fromString(@NotNull ByteBuffer str) {
                     var charSeq = new ByteBufferCharSequence(str);
-                    return Decimal64.Internal.Convert.Str.fromString(charSeq, 0, str.limit() - str.position());
+                    return Str.fromString(charSeq, 0, str.limit() - str.position());
                 }
 
-                public static long fromString(@NotNull CharSequence str, int offset, int len) {
+                public static @Decimal long fromString(@NotNull CharSequence str, int offset, int len) {
                     // throw on invalid indexes
                     Objects.checkFromToIndex(offset, offset + len, str.length());
 
@@ -641,10 +648,10 @@ public class Decimal64 {
                     }
 
                     // TODO use custom parsing
-                    return Decimal64.Internal.Convert.Str.fromStringFinite(str, head, tail - head);
+                    return Str.fromStringFinite(str, head, tail - head);
                 }
 
-                public static long fromStringFinite(@NotNull CharSequence str, int offset, int len) {
+                public static @Decimal long fromStringFinite(@NotNull CharSequence str, int offset, int len) {
                     var string = String.valueOf(str.subSequence(offset, offset + len));
                     BigDecimal bigDecimal;
                     try {
@@ -652,7 +659,7 @@ public class Decimal64 {
                     } catch (Exception e) {
                         throw new NumberFormatException("Invalid decimal string: '" + string + "'");
                     }
-                    return Decimal64.Internal.Convert.BigDec.fromBigDecimal(bigDecimal);
+                    return BigDec.fromBigDecimal(bigDecimal);
                 }
 
                 public static boolean bytesFinishNan(@NotNull CharSequence str, int i, int n) {
@@ -667,7 +674,7 @@ public class Decimal64 {
                                 && str.charAt(i+6) == 'y';
                 }
 
-                public static @NotNull String toString(long decimal) {
+                public static @NotNull String toString(@Decimal long decimal) {
                     ByteBuffer buf;
 
                     if (isFinite(decimal)) {
@@ -689,7 +696,7 @@ public class Decimal64 {
                 public static final byte[] NEGATIVE_INFINITY_ASCII = new byte[]{'-', 'I', 'n', 'f', 'i', 'n', 'i', 't', 'y'};
 
 
-                public static void toString(long decimal, @NotNull ByteBuffer out) {
+                public static void toString(@Decimal long decimal, @NotNull ByteBuffer out) {
                     if (!isFinite(decimal)) {
                         if (decimal == NAN) {
                             out.put(NAN_ASCII);
@@ -764,14 +771,15 @@ public class Decimal64 {
 
             public static class DecimalVsDecimal {
 
-                public static int compare(long decimalA, long decimalB) {
+                public static int compare(@Decimal long decimalA, @Decimal long decimalB) {
                     if (!isFinite(decimalA) || !isFinite(decimalB)) {
                         return compareNonFinite(decimalA, decimalB);
                     }
                     return compareFinite(decimalA, decimalB);
                 }
 
-                public static int compareNonFinite(long decimalA, long decimalB) {
+                @SuppressWarnings("fenum:argument")
+                public static int compareNonFinite(@Decimal long decimalA, @Decimal long decimalB) {
                     if (decimalA == decimalB) {
                         return 0;
                     }
@@ -789,7 +797,7 @@ public class Decimal64 {
                     return Long.compare(decimalA, decimalB);
                 }
 
-                public static int compareFinite(long decimalA, long decimalB) {
+                public static int compareFinite(@Decimal long decimalA, @Decimal long decimalB) {
                     if (decimalA == decimalB) {
                         return 0;
                     }
@@ -869,22 +877,26 @@ public class Decimal64 {
 
             public static class DecimalVsZero {
 
-                public static boolean ltZero(long decimal) {
+                @SuppressWarnings({"fenum:binary", "fenum:return"})
+                public static boolean ltZero(@Decimal long decimal) {
                     // safety: sign of data value is same as sign of mantissa, NaN value is 256, +/- Inf are signed
                     return decimal < 0;
                 }
 
-                public static boolean leZero(long decimal) {
+                @SuppressWarnings({"fenum:binary", "fenum:return"})
+                public static boolean leZero(@Decimal long decimal) {
                     // safety: sign of data value is same as sign of mantissa, NaN value is 256, +/- Inf are signed
                     return decimal <= 0;
                 }
 
-                public static boolean gtZero(long decimal) {
+                @SuppressWarnings({"fenum:binary", "fenum:return"})
+                public static boolean gtZero(@Decimal long decimal) {
                     // safety: sign of data value is same as sign of mantissa, NaN mantissa is 256, +/- Inf are signed
                     return decimal > 0;
                 }
 
-                public static boolean geZero(long decimal) {
+                @SuppressWarnings({"fenum:binary", "fenum:return"})
+                public static boolean geZero(@Decimal long decimal) {
                     // safety: sign of data value is same as sign of mantissa, NaN mantissa is 256, +/- Inf are signed
                     return decimal >= 0;
                 }
@@ -893,14 +905,14 @@ public class Decimal64 {
 
         public static class Maths {
 
-            public static long abs(long decimal) {
-                if (Internal.Compare.DecimalVsZero.ltZero(decimal)) {
+            public static @Decimal long abs(@Decimal long decimal) {
+                if (Compare.DecimalVsZero.ltZero(decimal)) {
                     return negate(decimal);
                 }
                 return decimal;
             }
 
-            public static long negate(long decimal) {
+            public static @Decimal long negate(@Decimal long decimal) {
                 // safety: mantissa is <= 16 digits so won't overflow,
                 //         -/+ Inf are symmetric so negating works,
                 //         and NaN mantissa is 0 so fine to negate that too.
@@ -909,14 +921,14 @@ public class Decimal64 {
 
             public static class Add {
 
-                public static long add(long decimalA, long decimalB) {
+                public static @Decimal long add(@Decimal long decimalA, @Decimal long decimalB) {
                     if (!isFinite(decimalA) || !isFinite(decimalB)) {
                         return addNonFinite(decimalA, decimalB);
                     }
                     return addFinite(decimalA, decimalB);
                 }
 
-                public static long addNonFinite(long decimalA, long decimalB) {
+                public static @Decimal long addNonFinite(@Decimal long decimalA, @Decimal long decimalB) {
                     if (decimalA == NAN || decimalB == NAN) {
                         // NaN + x
                         return NAN;
@@ -933,7 +945,7 @@ public class Decimal64 {
                     return isFinite(decimalA) ? decimalB : decimalA;
                 }
 
-                public static long addFinite(long decimalA, long decimalB) {
+                public static @Decimal long addFinite(@Decimal long decimalA, @Decimal long decimalB) {
                     // fast-path check for zeros
                     if ((decimalA | decimalB) == ZERO) {
                         return ZERO;
@@ -956,40 +968,41 @@ public class Decimal64 {
                     var bigDecimalA   = BigDecimal.valueOf(a_mantissa, a_exponent);
                     var bigDecimalB   = BigDecimal.valueOf(b_mantissa, b_exponent);
                     var bigDecimalSum = bigDecimalA.add(bigDecimalB, MathContext.DECIMAL64);
-                    return Internal.Convert.BigDec.fromBigDecimal(bigDecimalSum);
+                    return Convert.BigDec.fromBigDecimal(bigDecimalSum);
                 }
             }
 
             public static class Sub {
 
-                public static long sub(long decimalA, long decimalB) {
+                public static @Decimal long sub(@Decimal long decimalA, @Decimal long decimalB) {
                     if (!isFinite(decimalA) || !isFinite(decimalB)) {
                         return subNonFinite(decimalA, decimalB);
                     }
                     return subFinite(decimalA, decimalB);
                 }
 
-                public static long subNonFinite(long decimalA, long decimalB) {
+                public static @Decimal long subNonFinite(@Decimal long decimalA, @Decimal long decimalB) {
                     // logic is the same as add
-                    return Internal.Maths.Add.addNonFinite(decimalA, decimalB);
+                    return Add.addNonFinite(decimalA, decimalB);
                 }
 
-                public static long subFinite(long decimalA, long decimalB) {
+                public static @Decimal long subFinite(@Decimal long decimalA, @Decimal long decimalB) {
                     // a - b = a + (-b)
-                    return Internal.Maths.Add.addFinite(decimalA, negate(decimalB));
+                    return Add.addFinite(decimalA, negate(decimalB));
                 }
             }
 
             public static class Mul {
 
-                public static long mul(long decimalA, long decimalB) {
+                public static @Decimal long mul(@Decimal long decimalA, @Decimal long decimalB) {
                     if (!isFinite(decimalA) || !isFinite(decimalB)) {
                         return mulNonFinite(decimalA, decimalB);
                     }
                     return mulFinite(decimalA, decimalB);
                 }
 
-                public static long mulNonFinite(long decimalA, long decimalB) {
+                @SuppressWarnings({"fenum:argument"})
+                public static @Decimal long mulNonFinite(@Decimal long decimalA, @Decimal long decimalB) {
                     if (getMantissa(decimalA) == 0 || getMantissa(decimalB) == 0) {
                         // NaN * x, inf * 0
                         return NAN;
@@ -1006,7 +1019,7 @@ public class Decimal64 {
                     return FastMath.sameSign(decimalA, decimalB) ? POSITIVE_INFINITY : NEGATIVE_INFINITY;
                 }
 
-                public static long mulFinite(long decimalA, long decimalB) {
+                public static @Decimal long mulFinite(@Decimal long decimalA, @Decimal long decimalB) {
                     // fast path check for zero
                     if (decimalA == ZERO || decimalB == ZERO) {
                         return ZERO;
@@ -1027,20 +1040,20 @@ public class Decimal64 {
                     var bigDecimalA       = BigDecimal.valueOf(a_mantissa, a_exponent);
                     var bigDecimalB       = BigDecimal.valueOf(b_mantissa, b_exponent);
                     var bigDecimalProduct = bigDecimalA.multiply(bigDecimalB, MathContext.DECIMAL64);
-                    return Internal.Convert.BigDec.fromBigDecimal(bigDecimalProduct);
+                    return Convert.BigDec.fromBigDecimal(bigDecimalProduct);
                 }
             }
 
             public static class Div {
 
-                public static long div(long decimalA, long decimalB) {
+                public static @Decimal long div(@Decimal long decimalA, @Decimal long decimalB) {
                     if (!isFinite(decimalA) || !isFinite(decimalB)) {
                         return divNonFinite(decimalA, decimalB);
                     }
                     return divFinite(decimalA, decimalB);
                 }
 
-                public static long divNonFinite(long decimalA, long decimalB) {
+                public static @Decimal long divNonFinite(@Decimal long decimalA, @Decimal long decimalB) {
                     if (decimalA == NAN || decimalB == NAN || decimalB == ZERO) {
                         // nan / x, x / nan, x / 0
                         return NAN;
@@ -1065,7 +1078,7 @@ public class Decimal64 {
                     return decimalA;
                 }
 
-                public static long divFinite(long decimalA, long decimalB) {
+                public static @Decimal long divFinite(@Decimal long decimalA, @Decimal long decimalB) {
                     if (decimalB == ZERO) {
                         // x / 0
                         return NAN;
@@ -1080,156 +1093,140 @@ public class Decimal64 {
                         return decimalA;
                     }
 
-                    var bigDecimalA        = Internal.Convert.BigDec.toBigDecimal(decimalA);
-                    var bigDecimalB        = Internal.Convert.BigDec.toBigDecimal(decimalB);
+                    var bigDecimalA        = Convert.BigDec.toBigDecimal(decimalA);
+                    var bigDecimalB        = Convert.BigDec.toBigDecimal(decimalB);
                     var bigDecimalQuotient = bigDecimalA.divide(bigDecimalB, MathContext.DECIMAL64);
-                    return Internal.Convert.BigDec.fromBigDecimal(bigDecimalQuotient);
+                    return Convert.BigDec.fromBigDecimal(bigDecimalQuotient);
                 }
             }
 
             public static class Round {
-                public static long round(long decimal, int exponent) {
-                    var bigDecimal = Internal.Convert.BigDec.toBigDecimal(decimal);
+                public static @Decimal long round(@Decimal long decimal, int exponent) {
+                    var bigDecimal = Convert.BigDec.toBigDecimal(decimal);
                     bigDecimal = bigDecimal.setScale(exponent, MathContext.DECIMAL64.getRoundingMode());
-                    return Internal.Convert.BigDec.fromBigDecimal(bigDecimal);
+                    return Convert.BigDec.fromBigDecimal(bigDecimal);
                 }
             }
         }
     }
 
-    public static @NotNull String triplet(long decimal) {
+    public static @NotNull String triplet(@Decimal long decimal) {
         return Internal.Debug.triplet(decimal);
     }
 
-    public static void validate(long decimal) {
+    public static void validate(@Decimal long decimal) {
         Internal.Debug.validate(decimal);
     }
 
-    public static void validateFinite(long decimal) {
+    public static void validateFinite(@Decimal long decimal) {
         Internal.Debug.validateFinite(decimal);
     }
 
-    public static boolean isFinite(long decimal) {
-        return Decimal64.Internal.Data.isFinite(decimal);
+    public static boolean isFinite(@Decimal long decimal) {
+        return Internal.Data.isFinite(decimal);
     }
 
-    public static long fromParts(long mantissa, int exponent) {
+    public static @Decimal long fromParts(long mantissa, int exponent) {
         return Internal.Convert.Parts.fromParts(mantissa, exponent);
     }
 
-    public static long fromI64(long integer) {
+    public static @Decimal long fromI64(long integer) {
         return Internal.Convert.I64.fromI64(integer);
     }
 
-    public static long toI64(long decimal) {
+    public static long toI64(@Decimal long decimal) {
         return Internal.Convert.I64.toI64(decimal);
     }
 
-    public static long fromI32(int integer) {
+    public static @Decimal long fromI32(int integer) {
         return Internal.Convert.I32.fromI32(integer);
     }
 
-    public static long toI32(long decimal) {
+    public static long toI32(@Decimal long decimal) {
         return Internal.Convert.I32.toI32(decimal);
     }
 
-    public static long fromF64(double flt) {
+    public static @Decimal long fromF64(double flt) {
         return Internal.Convert.F64.fromF64(flt);
     }
 
-    public static double toF64(long decimal) {
+    public static double toF64(@Decimal long decimal) {
         return Internal.Convert.F64.toF64(decimal);
     }
 
-    public static long fromBigDecimal(@NotNull BigDecimal bigDecimal) {
+    public static @Decimal long fromBigDecimal(@NotNull BigDecimal bigDecimal) {
         return Internal.Convert.BigDec.fromBigDecimal(bigDecimal);
     }
 
-    public static @NotNull BigDecimal toBigDecimal(long decimal) {
+    public static @NotNull BigDecimal toBigDecimal(@Decimal long decimal) {
         return Internal.Convert.BigDec.toBigDecimal(decimal);
     }
 
-    public static long fromString(@NotNull String str) {
+    public static @Decimal long fromString(@NotNull String str) {
         return Internal.Convert.Str.fromString(str);
     }
 
-    public static @NotNull String toString(long decimal) {
+    public static @NotNull String toString(@Decimal long decimal) {
         return Internal.Convert.Str.toString(decimal);
     }
 
-    public static long fromString(@NotNull String str, int offset) {
+    public static @Decimal long fromString(@NotNull String str, int offset) {
         return Internal.Convert.Str.fromString(str, offset);
     }
 
-    public static long fromString(@NotNull String str, int offset, int len) {
+    public static @Decimal long fromString(@NotNull String str, int offset, int len) {
         return Internal.Convert.Str.fromString(str, offset, len);
     }
 
-    public static long fromString(@NotNull ByteBuffer in) {
+    public static @Decimal long fromString(@NotNull ByteBuffer in) {
         return Internal.Convert.Str.fromString(in);
     }
 
-    public static int compare(long decimalA, long decimalB) {
+    public static int compare(@Decimal long decimalA, @Decimal long decimalB) {
         return Internal.Compare.DecimalVsDecimal.compare(decimalA, decimalB);
     }
 
-    public static boolean ltZero(long decimal) {
+    public static boolean ltZero(@Decimal long decimal) {
         return Internal.Compare.DecimalVsZero.ltZero(decimal);
     }
 
-    public static boolean leZero(long decimal) {
+    public static boolean leZero(@Decimal long decimal) {
         return Internal.Compare.DecimalVsZero.leZero(decimal);
     }
 
-    public static boolean gtZero(long decimal) {
+    public static boolean gtZero(@Decimal long decimal) {
         return Internal.Compare.DecimalVsZero.gtZero(decimal);
     }
 
-    public static boolean geZero(long decimal) {
+    public static boolean geZero(@Decimal long decimal) {
         return Internal.Compare.DecimalVsZero.geZero(decimal);
     }
 
-    public static long abs(long decimal) {
+    public static @Decimal long abs(@Decimal long decimal) {
         return Internal.Maths.abs(decimal);
     }
 
-    public static long negate(long decimal) {
+    public static @Decimal long negate(@Decimal long decimal) {
         return Internal.Maths.negate(decimal);
     }
 
-    public static long add(long decimalA, long decimalB) {
+    public static @Decimal long add(@Decimal long decimalA, @Decimal long decimalB) {
         return Internal.Maths.Add.add(decimalA, decimalB);
     }
 
-    public static long sub(long decimalA, long decimalB) {
+    public static @Decimal long sub(@Decimal long decimalA, @Decimal long decimalB) {
         return Internal.Maths.Sub.sub(decimalA, decimalB);
     }
 
-    public static long mul(long decimalA, long decimalB) {
+    public static @Decimal long mul(@Decimal long decimalA, @Decimal long decimalB) {
         return Internal.Maths.Mul.mul(decimalA, decimalB);
     }
 
-    public static long div(long decimalA, long decimalB) {
+    public static @Decimal long div(@Decimal long decimalA, @Decimal long decimalB) {
         return Internal.Maths.Div.div(decimalA, decimalB);
     }
 
-    public static long round(long decimal, int exponent) {
+    public static @Decimal long round(@Decimal long decimal, int exponent) {
         return Internal.Maths.Round.round(decimal, exponent);
-    }
-
-    public static void print(@Decimal long decimal) {
-        System.out.println("decimal = " + Decimal64.toString(decimal));
-    }
-
-    public static void pass() {
-        long a = 0;
-        print(a);
-    }
-
-    public static void main(String[] args) {
-        long decimal = ZERO;
-        decimal += 1;
-        print(decimal);
-        pass();
     }
 }
