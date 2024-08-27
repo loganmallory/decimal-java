@@ -1,9 +1,8 @@
 package io.github.loganmallory.decimaljava;
 
+import io.github.loganmallory.decimaljava.annotations.Decimal;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -21,22 +20,22 @@ import static io.github.loganmallory.decimaljava.Decimal64.Internal.Data.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-
+@SuppressWarnings({"fenum:argument"})
 public class Decimal64Test {
 
     // e.g. `mvn clean package -DDECIMAL64_TEST_FUZZ_N=1000`
-    // 100m takes ~20 minutes
-    // 10m  takes ~2 minutes
-    // 1m   takes ~20 seconds
+    // 100m takes ~7 minutes
+    // 10m  takes ~40 seconds
+    // 1m   takes ~5 seconds
     public static final int FUZZ_N = Integer.getInteger("DECIMAL64_TEST_FUZZ_N", 1_000_000);
 
     public static final long RNG_SEED = 111;
 
-    private static void assertDecEquals(long expectedDecimal, long actualDecimal) {
+    private static void assertDecEquals(@Decimal long expectedDecimal, @Decimal long actualDecimal) {
         assertEquals(expectedDecimal, actualDecimal, () -> "expected: " + triplet(expectedDecimal) + ", got: " + triplet(actualDecimal));
     }
 
-    private static void assertDecEquals(long expectedDecimal, long actualDecimal, Supplier<Object> input) {
+    private static void assertDecEquals(@Decimal long expectedDecimal, @Decimal long actualDecimal, Supplier<Object> input) {
         assertEquals(expectedDecimal, actualDecimal, () -> "input: " + input.get() + ", expected: " + triplet(expectedDecimal) + ", got: " + triplet(actualDecimal));
     }
 
@@ -61,7 +60,7 @@ public class Decimal64Test {
         }
     }
 
-    private static void fuzz(int n, Consumer<Long> decimalConsumer) {
+    private static void fuzz(int n, Consumer<@Decimal Long> decimalConsumer) {
         var rng = new Random(RNG_SEED);
         enumerate_bounds(n, 17, 255, (mantissaBound, exponentBound) -> {
             mantissaBound = Math.min(MAX_MANTISSA, mantissaBound);
@@ -70,7 +69,7 @@ public class Decimal64Test {
         });
     }
 
-    private static void fuzz(int n, BiConsumer<Long, Long> twoDecimalsConsumer) {
+    private static void fuzz(int n, BiConsumer<@Decimal Long, @Decimal Long> twoDecimalsConsumer) {
         var rng = new Random(RNG_SEED);
         enumerate_bounds(n, 17, 255, (mantissaBound, exponentBound) -> {
             mantissaBound = Math.min(MAX_MANTISSA, mantissaBound);
@@ -155,36 +154,42 @@ public class Decimal64Test {
         @Test
         public void nan() {
             assertEquals("(256, 0, -256)", triplet(NAN));
+            assertEquals("(0, -256)", tuple(NAN));
             assertDoesNotThrow(() -> validate(NAN));
         }
 
         @Test
         public void negative_infinity() {
             assertEquals("(-9223372036854775040, -18014398509481983, -256)", triplet(NEGATIVE_INFINITY));
+            assertEquals("(-18014398509481983, -256)", tuple(NEGATIVE_INFINITY));
             assertDoesNotThrow(() -> validate(NEGATIVE_INFINITY));
         }
 
         @Test
         public void positive_infinity() {
             assertEquals("(9223372036854775552, 18014398509481983, -256)", triplet(POSITIVE_INFINITY));
+            assertEquals("(18014398509481983, -256)", tuple(POSITIVE_INFINITY));
             assertDoesNotThrow(() -> validate(POSITIVE_INFINITY));
         }
 
         @Test
         public void zero() {
             assertEquals("(0, 0, 0)", triplet(ZERO));
+            assertEquals("(0, 0)", tuple(ZERO));
             assertDoesNotThrow(() -> validate(ZERO));
         }
 
         @Test
         public void one() {
             assertEquals("(512, 1, 0)", triplet(ONE));
+            assertEquals("(1, 0)", tuple(ONE));
             assertDoesNotThrow(() -> validate(ONE));
         }
 
         @Test
         public void two() {
             assertEquals("(1024, 2, 0)", triplet(TWO));
+            assertEquals("(2, 0)", tuple(TWO));
             assertDoesNotThrow(() -> validate(TWO));
         }
 
@@ -480,12 +485,174 @@ public class Decimal64Test {
                 @Test
                 public void random() {
                     fuzz(FUZZ_N, decimal -> {
+                        Long expectedI64;
+
                         try {
-                            var expected = toBigDecimal(decimal).setScale(0, RoundingMode.HALF_EVEN).longValueExact();
-                            assertEquals(expected, toI64(decimal), triplet(decimal));
-                        } catch (ArithmeticException e) {
+                            expectedI64 = toBigDecimal(decimal).setScale(0, RoundingMode.HALF_EVEN).longValueExact();
+                        } catch (ArithmeticException ignore) {
+                            expectedI64 = null;
+                        }
+
+                        if (expectedI64 != null) {
+                            assertEquals(expectedI64, toI64(decimal), triplet(decimal));
+                        } else {
                             var ex = assertThrows(RuntimeException.class, () -> toI64(decimal));
                             assertEquals("Decimal is too large to convert to i64: " + Decimal64.toString(decimal), ex.getMessage());
+                        }
+                    });
+                }
+            }
+
+            @Nested
+            class ToI64WithExponent {
+
+                @Test
+                public void nan() {
+                    var ex = assertThrows(RuntimeException.class, () -> toI64(NAN, 1));
+                    assertEquals("Can't convert non-finite decimal to i64: NaN", ex.getMessage());
+                }
+
+                @Test
+                public void negative_infinity() {
+                    var ex = assertThrows(RuntimeException.class, () -> toI64(NEGATIVE_INFINITY, 1));
+                    assertEquals("Can't convert non-finite decimal to i64: -Infinity", ex.getMessage());
+                }
+
+                @Test
+                public void positive_infinity() {
+                    var ex = assertThrows(RuntimeException.class, () -> toI64(POSITIVE_INFINITY, 1));
+                    assertEquals("Can't convert non-finite decimal to i64: +Infinity", ex.getMessage());
+                }
+
+                @Test
+                public void zero() {
+                    var x = ZERO;
+
+                    assertEquals(0, toI64(x, -1));
+                    assertEquals(0, toI64(x, 0));
+                    assertEquals(0, toI64(x, 1));
+                }
+
+                @Test
+                public void one() {
+                    var x = ONE;
+
+                    assertEquals(0, toI64(x, -1));
+                    assertEquals(1, toI64(x, 0));
+                    assertEquals(10, toI64(x, 1));
+                    assertEquals(100, toI64(x, 2));
+                }
+
+                @Test
+                public void case_0000() {
+                    // 5.159000000000001
+                    var x = fromParts(5159000000000001L, 15);
+
+                    assertEquals(0, toI64(x, -1));
+                    assertEquals(5, toI64(x, 0));
+                    assertEquals(52, toI64(x, 1));
+                    assertEquals(516, toI64(x, 2));
+                    assertEquals(5159, toI64(x, 3));
+                    assertEquals(51590, toI64(x, 4));
+                    assertEquals(51590000000000010L, toI64(x, 16));
+                    var ex = assertThrows(ArithmeticException.class, () -> toI64(x, 18));
+                    assertEquals("Expanding decimal to 18 right side digits would overflow i64: 5.159000000000001", ex.getMessage());
+                }
+
+                @Test
+                public void case_0001() {
+                    var x = fromParts(5, 1);
+
+                    assertEquals(0, toI64(x, -1));
+                    assertEquals(0, toI64(x, 0));
+                    assertEquals(5, toI64(x, 1));
+                    assertEquals(5_000, toI64(x, 4));
+                }
+
+                @Test
+                public void case_0002() {
+                    var x = fromParts(-15, 1);
+
+                    assertEquals(0, toI64(x, -1));
+                    assertEquals(-2, toI64(x, 0));
+                    assertEquals(-15, toI64(x, 1));
+                    assertEquals(-1500, toI64(x, 3));
+                }
+
+                @Test
+                public void case_0003() {
+                    var x = fromParts(-67, 1);
+
+                    assertEquals(0, toI64(x, -1));
+                    assertEquals(-7, toI64(x, 0));
+                    assertEquals(-67, toI64(x, 1));
+                }
+
+                @Test
+                public void case_0004() {
+                    var x = fromParts(-95, 1);
+
+                    assertEquals(0, toI64(x, -1));
+                    assertEquals(-10, toI64(x, 0));
+                    assertEquals(-95, toI64(x, 1));
+                }
+
+                @Test
+                public void case_0005() {
+                    // -10
+                    var x = fromParts(-1, -1);
+                    assertEquals(-1, toI64(x, -1));
+                }
+
+                @Test
+                public void case_0006() {
+                    // 6e18
+                    var x = fromParts(6, -18);
+                    var ex = assertThrows(ArithmeticException.class, () -> toI64(x, 14));
+                    assertEquals("Expanding decimal to 14 right side digits would overflow i64: 6000000000000000000", ex.getMessage());
+                }
+
+                @Test
+                public void case_0007() {
+                    var x = fromParts(413, -2);
+                    var ex = assertThrows(ArithmeticException.class, () -> toI64(x, 14));
+                    assertEquals("Expanding decimal to 14 right side digits would overflow i64: 41300", ex.getMessage());
+                }
+
+                @Test
+                @SuppressWarnings("fenum:binary")
+                public void random() {
+                    fuzz(FUZZ_N, decimal -> {
+                        int nFractionalDigits = (int) (decimal % 16);
+                        var bigDecimal = toBigDecimal(decimal);
+                        Long expectedI64;
+
+                        try {
+                            BigDecimal pow = BigDecimal.TEN.pow(Math.abs(nFractionalDigits));
+                            if (nFractionalDigits > 0) {
+                                bigDecimal = bigDecimal.multiply(pow, MathContext.DECIMAL64);
+                                if (bigDecimal.precision() > PRECISION) {
+                                    bigDecimal = bigDecimal.round(MathContext.DECIMAL64);
+                                }
+                            } else {
+                                bigDecimal = bigDecimal.divide(pow, MathContext.DECIMAL64);
+                            }
+                            if (bigDecimal.abs().compareTo(BigDecimal.ONE) < 0) {
+                                expectedI64 = 0L;
+                            } else if (bigDecimal.abs().compareTo(BigDecimal.valueOf(999_999_999_999_999_999L)) > 0) {
+                                throw new ArithmeticException("overflow");
+                            } else {
+                                expectedI64 = bigDecimal.longValueExact();
+                            }
+                        } catch (ArithmeticException ignore) {
+                            expectedI64 = null;
+                        }
+
+                        if (expectedI64 != null) {
+                            assertEquals(expectedI64, toI64(decimal, nFractionalDigits), tuple(decimal) + ", " + nFractionalDigits);
+                        } else {
+                            var ex = assertThrows(RuntimeException.class, () -> toI64(decimal, nFractionalDigits), tuple(decimal) + ", " + nFractionalDigits);
+                            assertEquals("Expanding decimal to " + nFractionalDigits + " right side digits would overflow i64: " + Decimal64.toString(decimal), ex.getMessage());
                         }
                     });
                 }
@@ -1410,6 +1577,7 @@ public class Decimal64Test {
 
             @Test
             public void nan() {
+                assertFalse(isZero(NAN));
                 assertFalse(ltZero(NAN));
                 assertFalse(leZero(NAN));
                 assertTrue(geZero(NAN));
@@ -1418,6 +1586,7 @@ public class Decimal64Test {
 
             @Test
             public void negative_infinity() {
+                assertFalse(isZero(NEGATIVE_INFINITY));
                 assertTrue(ltZero(NEGATIVE_INFINITY));
                 assertTrue(leZero(NEGATIVE_INFINITY));
                 assertFalse(geZero(NEGATIVE_INFINITY));
@@ -1426,6 +1595,7 @@ public class Decimal64Test {
 
             @Test
             public void positive_infinity() {
+                assertFalse(isZero(POSITIVE_INFINITY));
                 assertFalse(ltZero(POSITIVE_INFINITY));
                 assertFalse(leZero(POSITIVE_INFINITY));
                 assertTrue(geZero(POSITIVE_INFINITY));
@@ -1433,7 +1603,17 @@ public class Decimal64Test {
             }
 
             @Test
+            public void zero() {
+                assertTrue(isZero(ZERO));
+                assertFalse(ltZero(ZERO));
+                assertTrue(leZero(ZERO));
+                assertTrue(geZero(ZERO));
+                assertFalse(gtZero(ZERO));
+            }
+
+            @Test
             public void one() {
+                assertFalse(isZero(ONE));
                 assertFalse(ltZero(ONE));
                 assertFalse(leZero(ONE));
                 assertTrue(geZero(ONE));
@@ -1452,6 +1632,7 @@ public class Decimal64Test {
                             assertFalse(gtZero(decimal), triplet(decimal));
                         }
                         case 0 -> {
+                            assertTrue(isZero(decimal), triplet(decimal));
                             assertFalse(ltZero(decimal), triplet(decimal));
                             assertTrue(leZero(decimal), triplet(decimal));
                             assertTrue(geZero(decimal), triplet(decimal));
@@ -1474,126 +1655,151 @@ public class Decimal64Test {
             @Test
             public void nan_nan() {
                 assertEquals(0, compare(NAN, NAN));
+                assertTrue(equal(NAN, NAN));
             }
 
             @Test
             public void nan_negative_infinity() {
                 assertEquals(1, compare(NAN, NEGATIVE_INFINITY));
+                assertFalse(equal(NAN, NEGATIVE_INFINITY));
             }
 
             @Test
             public void nan_positive_infinity() {
                 assertEquals(1, compare(NAN, POSITIVE_INFINITY));
+                assertFalse(equal(NAN, POSITIVE_INFINITY));
             }
 
             @Test
             public void nan_zero() {
                 assertEquals(1, compare(NAN, ZERO));
+                assertFalse(equal(NAN, ZERO));
             }
 
             @Test
             public void nan_one() {
                 assertEquals(1, compare(NAN, ONE));
+                assertFalse(equal(NAN, ONE));
             }
 
             @Test
             public void negative_infinity_nan() {
                 assertEquals(-1, compare(NEGATIVE_INFINITY, NAN));
+                assertFalse(equal(NEGATIVE_INFINITY, NAN));
             }
 
             @Test
             public void negative_infinity_negative_infinity() {
                 assertEquals(0, compare(NEGATIVE_INFINITY, NEGATIVE_INFINITY));
+                assertTrue(equal(NEGATIVE_INFINITY, NEGATIVE_INFINITY));
             }
 
             @Test
             public void negative_infinity_positive_infinity() {
                 assertEquals(-1, compare(NEGATIVE_INFINITY, POSITIVE_INFINITY));
+                assertFalse(equal(NEGATIVE_INFINITY, POSITIVE_INFINITY));
             }
 
             @Test
             public void negative_infinity_zero() {
                 assertEquals(-1, compare(NEGATIVE_INFINITY, ZERO));
+                assertFalse(equal(NEGATIVE_INFINITY, ZERO));
             }
 
             @Test
             public void negative_infinity_one() {
                 assertEquals(-1, compare(NEGATIVE_INFINITY, ONE));
+                assertFalse(equal(NEGATIVE_INFINITY, ONE));
             }
 
             @Test
             public void positive_infinity_nan() {
                 assertEquals(-1, compare(POSITIVE_INFINITY, NAN));
+                assertFalse(equal(POSITIVE_INFINITY, NAN));
             }
 
             @Test
             public void positive_infinity_negative_infinity() {
                 assertEquals(1, compare(POSITIVE_INFINITY, NEGATIVE_INFINITY));
+                assertFalse(equal(POSITIVE_INFINITY, NEGATIVE_INFINITY));
             }
 
             @Test
             public void positive_infinity_positive_infinity() {
                 assertEquals(0, compare(POSITIVE_INFINITY, POSITIVE_INFINITY));
+                assertTrue(equal(POSITIVE_INFINITY, POSITIVE_INFINITY));
             }
 
             @Test
             public void positive_infinity_zero() {
                 assertEquals(1, compare(POSITIVE_INFINITY, ZERO));
+                assertFalse(equal(POSITIVE_INFINITY, ZERO));
             }
 
             @Test
             public void positive_infinity_one() {
                 assertEquals(1, compare(POSITIVE_INFINITY, ONE));
+                assertFalse(equal(POSITIVE_INFINITY, ONE));
             }
 
             @Test
             public void zero_nan() {
                 assertEquals(-1, compare(ZERO, NAN));
+                assertFalse(equal(ZERO, NAN));
             }
 
             @Test
             public void zero_negative_infinity() {
                 assertEquals(1, compare(ZERO, NEGATIVE_INFINITY));
+                assertFalse(equal(ZERO, NEGATIVE_INFINITY));
             }
 
             @Test
             public void zero_positive_infinity() {
                 assertEquals(-1, compare(ZERO, POSITIVE_INFINITY));
+                assertFalse(equal(ZERO, POSITIVE_INFINITY));
             }
 
             @Test
             public void zero_zero() {
                 assertEquals(0, compare(ZERO, ZERO));
+                assertTrue(equal(ZERO, ZERO));
             }
 
             @Test
             public void zero_one() {
                 assertEquals(-1, compare(ZERO, ONE));
+                assertFalse(equal(ZERO, ONE));
             }
 
             @Test
             public void one_nan() {
                 assertEquals(-1, compare(ONE, NAN));
+                assertFalse(equal(ONE, NAN));
             }
 
             @Test
             public void one_negative_infinity() {
                 assertEquals(1, compare(ONE, NEGATIVE_INFINITY));
+                assertFalse(equal(ONE, NEGATIVE_INFINITY));
             }
 
             @Test
             public void one_positive_infinity() {
                 assertEquals(-1, compare(ONE, POSITIVE_INFINITY));
+                assertFalse(equal(ONE, POSITIVE_INFINITY));
             }
 
             @Test
             public void one_zero() {
                 assertEquals(1, compare(ONE, ZERO));
+                assertFalse(equal(ONE, ZERO));
             }
 
             @Test
             public void one_one() {
                 assertEquals(0, compare(ONE, ONE));
+                assertTrue(equal(ONE, ONE));
             }
 
             @Test
@@ -1610,6 +1816,8 @@ public class Decimal64Test {
                 var b = fromParts(1, 0);
                 assertEquals(-1, compare(a, b));
                 assertEquals(1, compare(b, a));
+                assertFalse(equal(a, b));
+                assertFalse(equal(b, a));
             }
 
             @Test
@@ -1619,6 +1827,8 @@ public class Decimal64Test {
                 var b = fromParts(1, 0);
                 assertEquals(-1, compare(a, b));
                 assertEquals(1, compare(b, a));
+                assertFalse(equal(a, b));
+                assertFalse(equal(b, a));
             }
 
             @Test
@@ -1628,6 +1838,8 @@ public class Decimal64Test {
                 var b = fromParts(-1234, 0);
                 assertEquals(1, compare(a, b));
                 assertEquals(-1, compare(b, a));
+                assertFalse(equal(a, b));
+                assertFalse(equal(b, a));
             }
 
             @Test
@@ -1637,6 +1849,8 @@ public class Decimal64Test {
                 var b = fromParts(-1234, 0);
                 assertEquals(1, compare(a, b));
                 assertEquals(-1, compare(b, a));
+                assertFalse(equal(a, b));
+                assertFalse(equal(b, a));
             }
 
             @Test
@@ -1646,6 +1860,8 @@ public class Decimal64Test {
                 var b = fromParts(1234, 0);
                 assertEquals(1, compare(a, b));
                 assertEquals(-1, compare(b, a));
+                assertFalse(equal(a, b));
+                assertFalse(equal(b, a));
             }
 
             @Test
@@ -1655,6 +1871,8 @@ public class Decimal64Test {
                 var b = fromParts(31415, 0);
                 assertEquals(-1, compare(a, b));
                 assertEquals(1, compare(b, a));
+                assertFalse(equal(a, b));
+                assertFalse(equal(b, a));
             }
 
             @Test
@@ -1664,6 +1882,8 @@ public class Decimal64Test {
                 var b = fromParts(1, 1);
                 assertEquals(1, compare(a, b));
                 assertEquals(-1, compare(b, a));
+                assertFalse(equal(a, b));
+                assertFalse(equal(b, a));
             }
 
             @Test
@@ -1673,6 +1893,8 @@ public class Decimal64Test {
                 var b = fromParts(214, 2);
                 assertEquals(1, compare(a, b));
                 assertEquals(-1, compare(b, a));
+                assertFalse(equal(a, b));
+                assertFalse(equal(b, a));
             }
 
             @Test
@@ -1682,6 +1904,8 @@ public class Decimal64Test {
                 var b = fromParts(314, 2);
                 assertEquals(-1, compare(a, b));
                 assertEquals(1, compare(b, a));
+                assertFalse(equal(a, b));
+                assertFalse(equal(b, a));
             }
 
             @Test
@@ -1691,6 +1915,8 @@ public class Decimal64Test {
                 var b = fromParts(15, 3);
                 assertEquals(1, compare(a, b));
                 assertEquals(-1, compare(b, a));
+                assertFalse(equal(a, b));
+                assertFalse(equal(b, a));
             }
 
             @Test
@@ -1700,6 +1926,8 @@ public class Decimal64Test {
                 var b = fromParts(4623712111284055L, 16);
                 assertEquals(1, compare(a, b));
                 assertEquals(-1, compare(b, a));
+                assertFalse(equal(a, b));
+                assertFalse(equal(b, a));
             }
 
             @Test
@@ -1709,6 +1937,8 @@ public class Decimal64Test {
                 var b = fromParts(4623712111284055L, 18);
                 assertEquals(-1, compare(a, b));
                 assertEquals(1, compare(b, a));
+                assertFalse(equal(a, b));
+                assertFalse(equal(b, a));
             }
 
             @Test
@@ -1718,6 +1948,8 @@ public class Decimal64Test {
                 var b = fromParts(-4623712111284055L, 18);
                 assertEquals(1, compare(a, b));
                 assertEquals(-1, compare(b, a));
+                assertFalse(equal(a, b));
+                assertFalse(equal(b, a));
             }
 
             @Test
@@ -1727,6 +1959,8 @@ public class Decimal64Test {
                 var b = fromParts(-8983711270143L, 2);
                 assertEquals(-1, compare(a, b));
                 assertEquals(1, compare(b, a));
+                assertFalse(equal(a, b));
+                assertFalse(equal(b, a));
             }
 
             @Test
@@ -1734,6 +1968,14 @@ public class Decimal64Test {
                 fuzz(FUZZ_N, (a, b) -> {
                     var expected = toBigDecimal(a).compareTo(toBigDecimal(b));
                     assertEquals(expected, compare(a, b), triplet(a) + ", " + triplet(b));
+                    assertEquals(expected * -1, compare(b, a), triplet(b) + ", " + triplet(a));
+                    if (expected == 0) {
+                        assertTrue(equal(a, b));
+                        assertTrue(equal(b, a));
+                    } else {
+                        assertFalse(equal(a, b));
+                        assertFalse(equal(b, a));
+                    }
                 });
             }
         }
@@ -3511,6 +3753,7 @@ public class Decimal64Test {
                 }
 
                 @Test
+                @SuppressWarnings("fenum:binary")
                 public void random() {
                     fuzz(FUZZ_N, decimal -> {
                         int exponent = (int) (decimal % 300);

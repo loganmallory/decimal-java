@@ -4,6 +4,10 @@
 
 # maven stuff
 target/
+build/
 
 # test coverage
 htmlReport/
+
+# finder metadata
+**.DS_Store
