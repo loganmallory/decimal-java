@@ -4,6 +4,7 @@
 
 # maven stuff
 target/
+build/
 
 # test coverage
 htmlReport/
