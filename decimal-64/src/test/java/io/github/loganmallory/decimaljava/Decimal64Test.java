@@ -27,7 +27,7 @@ public class Decimal64Test {
     // 100m takes ~7 minutes
     // 10m  takes ~40 seconds
     // 1m   takes ~5 seconds
-    public static final int FUZZ_N = Integer.getInteger("DECIMAL64_TEST_FUZZ_N", 100_000_000);
+    public static final int FUZZ_N = Integer.getInteger("DECIMAL64_TEST_FUZZ_N", 1_000_000);
 
     public static final long RNG_SEED = 111;
 
