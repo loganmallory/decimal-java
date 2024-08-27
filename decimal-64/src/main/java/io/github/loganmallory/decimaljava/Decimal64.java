@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.math.RoundingMode;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
@@ -376,6 +377,56 @@ public class Decimal64 {
                     }
 
                     throw new ArithmeticException("Decimal is too large to convert to i64: " + (sign < 0 ? "-" : "") + Str.toString(decimal));
+                }
+
+                public static long toI64(@Decimal long decimal, int nRightSideDigits) {
+                    // any digits remaining after nRightSideDigits are used to round the last returned digit
+                    if (!Decimal64.isFinite(decimal)) {
+                        throw new IllegalArgumentException("Can't convert non-finite decimal to i64: " + Str.toString(decimal));
+                    }
+
+                    long mantissa = getMantissa(decimal);
+                    int nDigits = FastMath.nDigits(mantissa);
+
+                    int diff = nRightSideDigits - getExponent(decimal);
+
+                    if (diff == 0) {
+                        // already good
+                        return mantissa;
+                    }
+
+                    if (diff < 0) {
+                        // shrinking
+                        if (diff <= -nDigits) {
+                            // underflow
+                            return 0;
+                        }
+                        long pow = FastMath.i64TenToThe(-diff);
+                        long remainder = Math.abs(mantissa % pow);
+                        mantissa /= pow;
+
+                        // apply half even rounding
+                        long half = 5 * pow / 10;
+                        if (remainder > half || (remainder == half && mantissa % 2 != 0)) {
+                            mantissa += mantissa > 0 ? 1 : -1;
+                        }
+                        return mantissa;
+                    }
+
+                    // expanding, diff > 0
+                    if (nDigits + diff > 18) {
+                        throw new ArithmeticException("Expanding decimal to " + nRightSideDigits + " right side digits would overflow i64: " + Decimal64.toString(decimal));
+                    }
+                    long pow = FastMath.i64TenToThe(diff);
+                    long remainder = Math.abs(mantissa % pow);
+                    mantissa *= pow;
+
+                    // apply half even rounding
+                    long half = 5 * pow / 10;
+                    if (remainder > half || (remainder == half && mantissa % 2 != 0)) {
+                        mantissa += mantissa > 0 ? 1 : -1;
+                    }
+                    return mantissa;
                 }
             }
 
@@ -771,6 +822,11 @@ public class Decimal64 {
 
             public static class DecimalVsDecimal {
 
+                @SuppressWarnings("fenum:return")
+                public static boolean equal(@Decimal long decimalA, @Decimal long decimalB) {
+                    return decimalA == decimalB;
+                }
+
                 public static int compare(@Decimal long decimalA, @Decimal long decimalB) {
                     if (!isFinite(decimalA) || !isFinite(decimalB)) {
                         return compareNonFinite(decimalA, decimalB);
@@ -876,6 +932,11 @@ public class Decimal64 {
             }
 
             public static class DecimalVsZero {
+
+                @SuppressWarnings({"fenum:return"})
+                public static boolean isZero(@Decimal long decimal) {
+                    return decimal == ZERO;
+                }
 
                 @SuppressWarnings({"fenum:binary", "fenum:return"})
                 public static boolean ltZero(@Decimal long decimal) {
@@ -1110,6 +1171,10 @@ public class Decimal64 {
         }
     }
 
+    public static @NotNull String tuple(@Decimal long decimal) {
+        return Internal.Debug.tuple(decimal);
+    }
+
     public static @NotNull String triplet(@Decimal long decimal) {
         return Internal.Debug.triplet(decimal);
     }
@@ -1136,6 +1201,10 @@ public class Decimal64 {
 
     public static long toI64(@Decimal long decimal) {
         return Internal.Convert.I64.toI64(decimal);
+    }
+
+    public static long toI64(@Decimal long decimal, int nRightSideDigits) {
+        return Internal.Convert.I64.toI64(decimal, nRightSideDigits);
     }
 
     public static @Decimal long fromI32(int integer) {
@@ -1182,8 +1251,16 @@ public class Decimal64 {
         return Internal.Convert.Str.fromString(in);
     }
 
+    public static boolean equal(@Decimal long decimalA, @Decimal long decimalB) {
+        return Internal.Compare.DecimalVsDecimal.equal(decimalA, decimalB);
+    }
+
     public static int compare(@Decimal long decimalA, @Decimal long decimalB) {
         return Internal.Compare.DecimalVsDecimal.compare(decimalA, decimalB);
+    }
+
+    public static boolean isZero(@Decimal long decimal) {
+        return Internal.Compare.DecimalVsZero.isZero(decimal);
     }
 
     public static boolean ltZero(@Decimal long decimal) {
