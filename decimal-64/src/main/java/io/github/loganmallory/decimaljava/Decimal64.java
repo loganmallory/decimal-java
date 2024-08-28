@@ -417,16 +417,8 @@ public class Decimal64 {
                     if (nDigits + diff > 18) {
                         throw new ArithmeticException("Expanding decimal to " + nRightSideDigits + " right side digits would overflow i64: " + Decimal64.toString(decimal));
                     }
-                    long pow = FastMath.i64TenToThe(diff);
-                    long remainder = Math.abs(mantissa % pow);
-                    mantissa *= pow;
-
-                    // apply half even rounding
-                    long half = 5 * pow / 10;
-                    if (remainder > half || (remainder == half && mantissa % 2 != 0)) {
-                        mantissa += mantissa > 0 ? 1 : -1;
-                    }
-                    return mantissa;
+                    // no rounding needed if expanding
+                    return mantissa * FastMath.i64TenToThe(diff);
                 }
             }
 

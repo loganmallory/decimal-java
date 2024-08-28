@@ -620,6 +620,12 @@ public class Decimal64Test {
                 }
 
                 @Test
+                public void case_0008() {
+                    var x = fromParts(65885, 5);
+                    assertEquals(6588500000L, toI64(x, 10));
+                }
+
+                @Test
                 @SuppressWarnings("fenum:binary")
                 public void random() {
                     fuzz(FUZZ_N, decimal -> {
