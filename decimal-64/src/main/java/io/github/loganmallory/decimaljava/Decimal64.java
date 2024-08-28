@@ -820,12 +820,10 @@ public class Decimal64 {
                 }
 
                 public static @Decimal long min(@Decimal long decimalA, @Decimal long decimalB) {
-                    // TODO: test
                     return Internal.Compare.DecimalVsDecimal.compare(decimalA, decimalB) <= 0 ? decimalA : decimalB;
                 }
 
                 public static @Decimal long max(@Decimal long decimalA, @Decimal long decimalB) {
-                    // TODO: test
                     return Internal.Compare.DecimalVsDecimal.compare(decimalA, decimalB) >= 0 ? decimalA : decimalB;
                 }
 
