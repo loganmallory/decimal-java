@@ -1626,6 +1626,7 @@ public class Decimal64Test {
                     var expected = toBigDecimal(decimal).compareTo(BigDecimal.ZERO);
                     switch (expected) {
                         case -1 -> {
+                            assertFalse(isZero(decimal), triplet(decimal));
                             assertTrue(ltZero(decimal), triplet(decimal));
                             assertTrue(leZero(decimal), triplet(decimal));
                             assertFalse(geZero(decimal), triplet(decimal));
@@ -1639,6 +1640,7 @@ public class Decimal64Test {
                             assertFalse(gtZero(decimal), triplet(decimal));
                         }
                         case 1 -> {
+                            assertFalse(isZero(decimal), triplet(decimal));
                             assertFalse(ltZero(decimal), triplet(decimal));
                             assertFalse(leZero(decimal), triplet(decimal));
                             assertTrue(geZero(decimal), triplet(decimal));
@@ -1656,150 +1658,200 @@ public class Decimal64Test {
             public void nan_nan() {
                 assertEquals(0, compare(NAN, NAN));
                 assertTrue(equal(NAN, NAN));
+                assertDecEquals(NAN, min(NAN, NAN));
+                assertDecEquals(NAN, max(NAN, NAN));
             }
 
             @Test
             public void nan_negative_infinity() {
                 assertEquals(1, compare(NAN, NEGATIVE_INFINITY));
                 assertFalse(equal(NAN, NEGATIVE_INFINITY));
+                assertDecEquals(NEGATIVE_INFINITY, min(NAN, NEGATIVE_INFINITY));
+                assertDecEquals(NAN, max(NAN, NEGATIVE_INFINITY));
             }
 
             @Test
             public void nan_positive_infinity() {
                 assertEquals(1, compare(NAN, POSITIVE_INFINITY));
                 assertFalse(equal(NAN, POSITIVE_INFINITY));
+                assertDecEquals(POSITIVE_INFINITY, min(NAN, POSITIVE_INFINITY));
+                assertDecEquals(NAN, max(NAN, POSITIVE_INFINITY));
             }
 
             @Test
             public void nan_zero() {
                 assertEquals(1, compare(NAN, ZERO));
                 assertFalse(equal(NAN, ZERO));
+                assertDecEquals(ZERO, min(NAN, ZERO));
+                assertDecEquals(NAN, max(NAN, ZERO));
             }
 
             @Test
             public void nan_one() {
                 assertEquals(1, compare(NAN, ONE));
                 assertFalse(equal(NAN, ONE));
+                assertDecEquals(ONE, min(NAN, ONE));
+                assertDecEquals(NAN, max(NAN, ONE));
             }
 
             @Test
             public void negative_infinity_nan() {
                 assertEquals(-1, compare(NEGATIVE_INFINITY, NAN));
                 assertFalse(equal(NEGATIVE_INFINITY, NAN));
+                assertDecEquals(NEGATIVE_INFINITY, min(NEGATIVE_INFINITY, NAN));
+                assertDecEquals(NAN, max(NEGATIVE_INFINITY, NAN));
             }
 
             @Test
             public void negative_infinity_negative_infinity() {
                 assertEquals(0, compare(NEGATIVE_INFINITY, NEGATIVE_INFINITY));
                 assertTrue(equal(NEGATIVE_INFINITY, NEGATIVE_INFINITY));
+                assertDecEquals(NEGATIVE_INFINITY, min(NEGATIVE_INFINITY, NEGATIVE_INFINITY));
+                assertDecEquals(NEGATIVE_INFINITY, max(NEGATIVE_INFINITY, NEGATIVE_INFINITY));
             }
 
             @Test
             public void negative_infinity_positive_infinity() {
                 assertEquals(-1, compare(NEGATIVE_INFINITY, POSITIVE_INFINITY));
                 assertFalse(equal(NEGATIVE_INFINITY, POSITIVE_INFINITY));
+                assertDecEquals(NEGATIVE_INFINITY, min(NEGATIVE_INFINITY, POSITIVE_INFINITY));
+                assertDecEquals(POSITIVE_INFINITY, max(NEGATIVE_INFINITY, POSITIVE_INFINITY));
             }
 
             @Test
             public void negative_infinity_zero() {
                 assertEquals(-1, compare(NEGATIVE_INFINITY, ZERO));
                 assertFalse(equal(NEGATIVE_INFINITY, ZERO));
+                assertDecEquals(NEGATIVE_INFINITY, min(NEGATIVE_INFINITY, ZERO));
+                assertDecEquals(ZERO, max(NEGATIVE_INFINITY, ZERO));
             }
 
             @Test
             public void negative_infinity_one() {
                 assertEquals(-1, compare(NEGATIVE_INFINITY, ONE));
                 assertFalse(equal(NEGATIVE_INFINITY, ONE));
+                assertDecEquals(NEGATIVE_INFINITY, min(NEGATIVE_INFINITY, ONE));
+                assertDecEquals(ONE, max(NEGATIVE_INFINITY, ONE));
             }
 
             @Test
             public void positive_infinity_nan() {
                 assertEquals(-1, compare(POSITIVE_INFINITY, NAN));
                 assertFalse(equal(POSITIVE_INFINITY, NAN));
+                assertDecEquals(POSITIVE_INFINITY, min(POSITIVE_INFINITY, NAN));
+                assertDecEquals(NAN, max(POSITIVE_INFINITY, NAN));
             }
 
             @Test
             public void positive_infinity_negative_infinity() {
                 assertEquals(1, compare(POSITIVE_INFINITY, NEGATIVE_INFINITY));
                 assertFalse(equal(POSITIVE_INFINITY, NEGATIVE_INFINITY));
+                assertDecEquals(NEGATIVE_INFINITY, min(POSITIVE_INFINITY, NEGATIVE_INFINITY));
+                assertDecEquals(POSITIVE_INFINITY, max(POSITIVE_INFINITY, NEGATIVE_INFINITY));
             }
 
             @Test
             public void positive_infinity_positive_infinity() {
                 assertEquals(0, compare(POSITIVE_INFINITY, POSITIVE_INFINITY));
                 assertTrue(equal(POSITIVE_INFINITY, POSITIVE_INFINITY));
+                assertDecEquals(POSITIVE_INFINITY, min(POSITIVE_INFINITY, POSITIVE_INFINITY));
+                assertDecEquals(POSITIVE_INFINITY, max(POSITIVE_INFINITY, POSITIVE_INFINITY));
             }
 
             @Test
             public void positive_infinity_zero() {
                 assertEquals(1, compare(POSITIVE_INFINITY, ZERO));
                 assertFalse(equal(POSITIVE_INFINITY, ZERO));
+                assertDecEquals(ZERO, min(POSITIVE_INFINITY, ZERO));
+                assertDecEquals(POSITIVE_INFINITY, max(POSITIVE_INFINITY, ZERO));
             }
 
             @Test
             public void positive_infinity_one() {
                 assertEquals(1, compare(POSITIVE_INFINITY, ONE));
                 assertFalse(equal(POSITIVE_INFINITY, ONE));
+                assertDecEquals(ONE, min(POSITIVE_INFINITY, ONE));
+                assertDecEquals(POSITIVE_INFINITY, max(POSITIVE_INFINITY, ONE));
             }
 
             @Test
             public void zero_nan() {
                 assertEquals(-1, compare(ZERO, NAN));
                 assertFalse(equal(ZERO, NAN));
+                assertDecEquals(ZERO, min(ZERO, NAN));
+                assertDecEquals(NAN, max(ZERO, NAN));
             }
 
             @Test
             public void zero_negative_infinity() {
                 assertEquals(1, compare(ZERO, NEGATIVE_INFINITY));
                 assertFalse(equal(ZERO, NEGATIVE_INFINITY));
+                assertDecEquals(NEGATIVE_INFINITY, min(ZERO, NEGATIVE_INFINITY));
+                assertDecEquals(ZERO, max(ZERO, NEGATIVE_INFINITY));
             }
 
             @Test
             public void zero_positive_infinity() {
                 assertEquals(-1, compare(ZERO, POSITIVE_INFINITY));
                 assertFalse(equal(ZERO, POSITIVE_INFINITY));
+                assertDecEquals(ZERO, min(ZERO, POSITIVE_INFINITY));
+                assertDecEquals(POSITIVE_INFINITY, max(ZERO, POSITIVE_INFINITY));
             }
 
             @Test
             public void zero_zero() {
                 assertEquals(0, compare(ZERO, ZERO));
                 assertTrue(equal(ZERO, ZERO));
+                assertDecEquals(ZERO, min(ZERO, ZERO));
+                assertDecEquals(ZERO, max(ZERO, ZERO));
             }
 
             @Test
             public void zero_one() {
                 assertEquals(-1, compare(ZERO, ONE));
                 assertFalse(equal(ZERO, ONE));
+                assertDecEquals(ZERO, min(ZERO, ONE));
+                assertDecEquals(ONE, max(ZERO, ONE));
             }
 
             @Test
             public void one_nan() {
                 assertEquals(-1, compare(ONE, NAN));
                 assertFalse(equal(ONE, NAN));
+                assertDecEquals(ONE, min(ONE, NAN));
+                assertDecEquals(NAN, max(ONE, NAN));
             }
 
             @Test
             public void one_negative_infinity() {
                 assertEquals(1, compare(ONE, NEGATIVE_INFINITY));
                 assertFalse(equal(ONE, NEGATIVE_INFINITY));
+                assertDecEquals(NEGATIVE_INFINITY, min(ONE, NEGATIVE_INFINITY));
+                assertDecEquals(ONE, max(ONE, NEGATIVE_INFINITY));
             }
 
             @Test
             public void one_positive_infinity() {
                 assertEquals(-1, compare(ONE, POSITIVE_INFINITY));
                 assertFalse(equal(ONE, POSITIVE_INFINITY));
+                assertDecEquals(ONE, min(ONE, POSITIVE_INFINITY));
+                assertDecEquals(POSITIVE_INFINITY, max(ONE, POSITIVE_INFINITY));
             }
 
             @Test
             public void one_zero() {
                 assertEquals(1, compare(ONE, ZERO));
                 assertFalse(equal(ONE, ZERO));
+                assertDecEquals(ZERO, min(ONE, ZERO));
+                assertDecEquals(ONE, max(ONE, ZERO));
             }
 
             @Test
             public void one_one() {
                 assertEquals(0, compare(ONE, ONE));
                 assertTrue(equal(ONE, ONE));
+                assertDecEquals(ONE, min(ONE, ONE));
+                assertDecEquals(ONE, max(ONE, ONE));
             }
 
             @Test
@@ -1818,6 +1870,8 @@ public class Decimal64Test {
                 assertEquals(1, compare(b, a));
                 assertFalse(equal(a, b));
                 assertFalse(equal(b, a));
+                assertDecEquals(a, min(a, b));
+                assertDecEquals(b, max(a, b));
             }
 
             @Test
@@ -1829,6 +1883,8 @@ public class Decimal64Test {
                 assertEquals(1, compare(b, a));
                 assertFalse(equal(a, b));
                 assertFalse(equal(b, a));
+                assertDecEquals(a, min(a, b));
+                assertDecEquals(b, max(a, b));
             }
 
             @Test
@@ -1840,6 +1896,8 @@ public class Decimal64Test {
                 assertEquals(-1, compare(b, a));
                 assertFalse(equal(a, b));
                 assertFalse(equal(b, a));
+                assertDecEquals(b, min(a, b));
+                assertDecEquals(a, max(a, b));
             }
 
             @Test
@@ -1851,6 +1909,8 @@ public class Decimal64Test {
                 assertEquals(-1, compare(b, a));
                 assertFalse(equal(a, b));
                 assertFalse(equal(b, a));
+                assertDecEquals(b, min(a, b));
+                assertDecEquals(a, max(a, b));
             }
 
             @Test
@@ -1862,6 +1922,8 @@ public class Decimal64Test {
                 assertEquals(-1, compare(b, a));
                 assertFalse(equal(a, b));
                 assertFalse(equal(b, a));
+                assertDecEquals(b, min(a, b));
+                assertDecEquals(a, max(a, b));
             }
 
             @Test
@@ -1873,6 +1935,8 @@ public class Decimal64Test {
                 assertEquals(1, compare(b, a));
                 assertFalse(equal(a, b));
                 assertFalse(equal(b, a));
+                assertDecEquals(a, min(a, b));
+                assertDecEquals(b, max(a, b));
             }
 
             @Test
@@ -1884,6 +1948,8 @@ public class Decimal64Test {
                 assertEquals(-1, compare(b, a));
                 assertFalse(equal(a, b));
                 assertFalse(equal(b, a));
+                assertDecEquals(b, min(a, b));
+                assertDecEquals(a, max(a, b));
             }
 
             @Test
@@ -1895,6 +1961,8 @@ public class Decimal64Test {
                 assertEquals(-1, compare(b, a));
                 assertFalse(equal(a, b));
                 assertFalse(equal(b, a));
+                assertDecEquals(b, min(a, b));
+                assertDecEquals(a, max(a, b));
             }
 
             @Test
@@ -1906,6 +1974,8 @@ public class Decimal64Test {
                 assertEquals(1, compare(b, a));
                 assertFalse(equal(a, b));
                 assertFalse(equal(b, a));
+                assertDecEquals(a, min(a, b));
+                assertDecEquals(b, max(a, b));
             }
 
             @Test
@@ -1917,6 +1987,8 @@ public class Decimal64Test {
                 assertEquals(-1, compare(b, a));
                 assertFalse(equal(a, b));
                 assertFalse(equal(b, a));
+                assertDecEquals(b, min(a, b));
+                assertDecEquals(a, max(a, b));
             }
 
             @Test
@@ -1928,6 +2000,8 @@ public class Decimal64Test {
                 assertEquals(-1, compare(b, a));
                 assertFalse(equal(a, b));
                 assertFalse(equal(b, a));
+                assertDecEquals(b, min(a, b));
+                assertDecEquals(a, max(a, b));
             }
 
             @Test
@@ -1939,6 +2013,8 @@ public class Decimal64Test {
                 assertEquals(1, compare(b, a));
                 assertFalse(equal(a, b));
                 assertFalse(equal(b, a));
+                assertDecEquals(a, min(a, b));
+                assertDecEquals(b, max(a, b));
             }
 
             @Test
@@ -1950,6 +2026,8 @@ public class Decimal64Test {
                 assertEquals(-1, compare(b, a));
                 assertFalse(equal(a, b));
                 assertFalse(equal(b, a));
+                assertDecEquals(b, min(a, b));
+                assertDecEquals(a, max(a, b));
             }
 
             @Test
@@ -1961,20 +2039,33 @@ public class Decimal64Test {
                 assertEquals(1, compare(b, a));
                 assertFalse(equal(a, b));
                 assertFalse(equal(b, a));
+                assertDecEquals(a, min(a, b));
+                assertDecEquals(b, max(a, b));
             }
 
             @Test
             public void random() {
                 fuzz(FUZZ_N, (a, b) -> {
                     var expected = toBigDecimal(a).compareTo(toBigDecimal(b));
+
                     assertEquals(expected, compare(a, b), triplet(a) + ", " + triplet(b));
                     assertEquals(expected * -1, compare(b, a), triplet(b) + ", " + triplet(a));
+
                     if (expected == 0) {
                         assertTrue(equal(a, b));
                         assertTrue(equal(b, a));
+                        assertDecEquals(a, min(a, b));
+                        assertDecEquals(a, max(a, b));
                     } else {
                         assertFalse(equal(a, b));
                         assertFalse(equal(b, a));
+                        if (expected > 0) {
+                            assertDecEquals(b, min(a, b));
+                            assertDecEquals(a, max(a, b));
+                        } else {
+                            assertDecEquals(a, min(a, b));
+                            assertDecEquals(b, max(a, b));
+                        }
                     }
                 });
             }

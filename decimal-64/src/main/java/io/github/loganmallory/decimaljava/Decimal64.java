@@ -568,6 +568,7 @@ public class Decimal64 {
             }
 
             public static class BigDec {
+
                 public static @Decimal long fromBigDecimal(@NotNull BigDecimal bigDecimal) {
                     if (bigDecimal.precision() > PRECISION) {
                         bigDecimal = bigDecimal.round(MathContext.DECIMAL64); // TODO: this is amazingly slow
@@ -714,12 +715,12 @@ public class Decimal64 {
                 }
 
                 public static boolean bytesFinishNan(@NotNull CharSequence str, int i, int n) {
-                    // assumes buf[i-1] == 'N'
+                    assert str.charAt(i - 1) == 'N';
                     return n - i == 2 && str.charAt(i) == 'a' && str.charAt(i+1) == 'N';
                 }
 
                 public static boolean bytesFinishInfinity(@NotNull CharSequence str, int i, int n) {
-                    // assumes buf[i-1] == 'I'
+                    assert str.charAt(i - 1) == 'I';
                     return n - i == 7 && str.charAt(i) == 'n' && str.charAt(i+1) == 'f' && str.charAt(i+2) == 'i'
                                 && str.charAt(i+3) == 'n' && str.charAt(i+4) == 'i' && str.charAt(i+5) == 't'
                                 && str.charAt(i+6) == 'y';
@@ -745,7 +746,6 @@ public class Decimal64 {
                 public static final byte[] NAN_ASCII = new byte[]{'N', 'a', 'N'};
                 public static final byte[] POSITIVE_INFINITY_ASCII = new byte[]{'+', 'I', 'n', 'f', 'i', 'n', 'i', 't', 'y'};
                 public static final byte[] NEGATIVE_INFINITY_ASCII = new byte[]{'-', 'I', 'n', 'f', 'i', 'n', 'i', 't', 'y'};
-
 
                 public static void toString(@Decimal long decimal, @NotNull ByteBuffer out) {
                     if (!isFinite(decimal)) {
@@ -825,6 +825,16 @@ public class Decimal64 {
                 @SuppressWarnings("fenum:return")
                 public static boolean equal(@Decimal long decimalA, @Decimal long decimalB) {
                     return decimalA == decimalB;
+                }
+
+                public static @Decimal long min(@Decimal long decimalA, @Decimal long decimalB) {
+                    // TODO: test
+                    return Internal.Compare.DecimalVsDecimal.compare(decimalA, decimalB) <= 0 ? decimalA : decimalB;
+                }
+
+                public static @Decimal long max(@Decimal long decimalA, @Decimal long decimalB) {
+                    // TODO: test
+                    return Internal.Compare.DecimalVsDecimal.compare(decimalA, decimalB) >= 0 ? decimalA : decimalB;
                 }
 
                 public static int compare(@Decimal long decimalA, @Decimal long decimalB) {
@@ -1253,6 +1263,14 @@ public class Decimal64 {
 
     public static boolean equal(@Decimal long decimalA, @Decimal long decimalB) {
         return Internal.Compare.DecimalVsDecimal.equal(decimalA, decimalB);
+    }
+
+    public static @Decimal long min(@Decimal long decimalA, @Decimal long decimalB) {
+        return Internal.Compare.DecimalVsDecimal.min(decimalA, decimalB);
+    }
+
+    public static @Decimal long max(@Decimal long decimalA, @Decimal long decimalB) {
+        return Internal.Compare.DecimalVsDecimal.max(decimalA, decimalB);
     }
 
     public static int compare(@Decimal long decimalA, @Decimal long decimalB) {
