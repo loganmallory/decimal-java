@@ -14,6 +14,7 @@
     <modules>
         <module>decimal-annotations</module>
         <module>decimal-64</module>
+        <module>decimal-benchmarks</module>
     </modules>
 
     <name>decimal</name>
