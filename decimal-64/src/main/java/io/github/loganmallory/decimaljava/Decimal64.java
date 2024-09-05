@@ -1062,7 +1062,7 @@ public class Decimal64 {
 
                     // find where l and h start on the number line
                     int l_start = l_exponent - (l_n_digits - 1); // e.g. 12300:-4, 1230:-3, 123:-2, 12.3:-1, 1.23:0, .123:1, .0123:2
-                    int s_start = s_exponent - (s_n_digits - 1); // e.g. 12200:-4, 1220:-3, 122:-2, 12.2:-1, 1.22:0, .122:1, .0122:2
+                    int s_start = s_exponent - (s_n_digits - 1);
 
                     int dist = Math.abs(l_start - s_start);
 
@@ -1070,43 +1070,6 @@ public class Decimal64 {
                         // too far apart, l will be unchanged
                         return Internal.Data.makeUnsafe(l_mantissa, l_exponent);
                     }
-
-                    // exponent tells you where the number ends
-
-                    //   3.14159
-                    // + 0.0001
-                    // = 3.14169 // dist=4, diff=(5-4)=1
-                    //   314159
-                    // +      1 // so s_mantissa needs to expand by 10
-                    // however, another way to do this would be divide l_mantissa by 10, add 1, then add back the 9
-
-                    //   123
-                    // +   0.123
-                    // = 123.123 // dist=3, diff=(0-3)=-3
-                    //   123000  // so l_mantissa needs to expand by 1_000
-                    // +    123
-
-                    //   12
-                    // +  0.123
-                    // = 12.123 // dist=2, diff=(0-3)=-3
-                    //   12000  // so l_mantissa needs to expand by 1_000
-                    // +   123
-
-                    // pretend prec=4
-                    //   123
-                    // +   0.9999
-                    // = 123.9999 // dist=3, diff=(0-4)=-4
-                    // = 124
-                    //   1230000
-                    // +    9999
-                    // but that would overflow
-                    // so instead: space=1, so take first 2 sig digits of s (99), and round them (if space=0, we would take next 1 digit from s)
-                    //
-                    // +   99
-
-                    // we can safely expand up to 18 digits
-
-                    // dist is in [0, PRECISION)
 
                     // we only need first K digits of s
                     int s_keep_first_n_digits = (PRECISION - dist) + 2;
@@ -1136,20 +1099,22 @@ public class Decimal64 {
 
                     l_mantissa += s_mantissa;
 
-                    int l_mantissa_n_digits = FastMath.nDigits(l_mantissa);
-                    if ((l_mantissa_n_digits == PRECISION + 1 && Math.abs(l_mantissa % 10) == 5)
-                            || (l_mantissa_n_digits == PRECISION + 2 && Math.abs(l_mantissa % 100) == 50)) {
-                        int round = 0;
+                    if (l_mantissa > MAX_MANTISSA || l_mantissa < -MAX_MANTISSA) {
+                        int l_mantissa_n_digits = FastMath.nDigits(l_mantissa);
+                        if ((l_mantissa_n_digits == PRECISION + 1 && Math.abs(l_mantissa % 10) == 5)
+                                || (l_mantissa_n_digits == PRECISION + 2 && Math.abs(l_mantissa % 100) == 50)) {
+                            int round = 0;
 
-                        if (s_mantissa_remainder > 0) {
-                            round = FastMath.sign(l_mantissa);
-                        } else if (s_mantissa_remainder == 0 && Math.abs(l_mantissa % 10) == 5 && Math.abs(l_mantissa / 10) % 2 != 0) {
-                            round = FastMath.sign(l_mantissa);
+                            if (s_mantissa_remainder > 0) {
+                                round = FastMath.sign(l_mantissa);
+                            } else if (s_mantissa_remainder == 0 && Math.abs(l_mantissa % 10) == 5 && Math.abs(l_mantissa / 10) % 2 != 0) {
+                                round = FastMath.sign(l_mantissa);
+                            }
+
+                            l_mantissa /= 10;
+                            l_mantissa += round;
+                            l_exponent -= 1;
                         }
-
-                        l_mantissa /= 10;
-                        l_mantissa += round;
-                        l_exponent -= 1;
                     }
 
                     return Internal.Convert.Parts.fromParts(l_mantissa, l_exponent);
