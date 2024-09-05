@@ -35,8 +35,8 @@ public class FastMath {
             val *= -1;
         }
 
-        //int guess = (Long.numberOfLeadingZeros(val) * 19) >>> 6;
-        int guess = (int) ((Math.log(val) / Math.log(2)) * 19) >>> 6;
+        int log2 = 63 - Long.numberOfLeadingZeros(val);
+        int guess = (log2 * 19) >>> 6;
 
         long ttg = LOG10_THRESHOLDS[guess];
 
@@ -85,5 +85,9 @@ public class FastMath {
 
     public static boolean sameSign(long a, long b) {
         return (a ^ b) >= 0;
+    }
+
+    public static int sign(long val) {
+        return ((int) (val >> 63)) | 1;
     }
 }

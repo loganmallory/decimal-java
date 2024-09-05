@@ -16,7 +16,8 @@ import java.util.function.Supplier;
 
 import static io.github.loganmallory.decimaljava.Decimal64.*;
 import static io.github.loganmallory.decimaljava.Decimal64.Internal.*;
-import static io.github.loganmallory.decimaljava.Decimal64.Internal.Data.*;
+import static io.github.loganmallory.decimaljava.Decimal64.Internal.Data.getExponent;
+import static io.github.loganmallory.decimaljava.Decimal64.Internal.Data.getMantissa;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -127,23 +128,23 @@ public class Decimal64Test {
         @Test
         public void random() {
             fuzz(FUZZ_N, (a, b) -> {
-                b = setMantissa(b, getMantissa(a));
-                b = setExponent(b, getExponent(a));
+                b = Internal.Data.setMantissa(b, getMantissa(a));
+                b = Internal.Data.setExponent(b, getExponent(a));
 
                 assertEquals(getMantissa(a), getMantissa(b), triplet(b));
                 assertEquals(getExponent(a), getExponent(b), triplet(b));
-                assertEquals(a, makeUnsafe(getMantissa(a), getExponent(a)));
-                assertEquals(b, makeUnsafe(getMantissa(b), getExponent(b)));
+                assertEquals(a, Internal.Data.makeUnsafe(getMantissa(a), getExponent(a)));
+                assertEquals(b, Internal.Data.makeUnsafe(getMantissa(b), getExponent(b)));
             });
 
             fuzz(FUZZ_N, (a, b) -> {
-                b = setExponent(b, getExponent(a));
-                b = setMantissa(b, getMantissa(a));
+                b = Internal.Data.setExponent(b, getExponent(a));
+                b = Internal.Data.setMantissa(b, getMantissa(a));
 
                 assertEquals(getMantissa(a), getMantissa(b), triplet(b));
                 assertEquals(getExponent(a), getExponent(b), triplet(b));
-                assertEquals(a, makeUnsafe(getMantissa(a), getExponent(a)));
-                assertEquals(b, makeUnsafe(getMantissa(b), getExponent(b)));
+                assertEquals(a, Internal.Data.makeUnsafe(getMantissa(a), getExponent(a)));
+                assertEquals(b, Internal.Data.makeUnsafe(getMantissa(b), getExponent(b)));
             });
         }
     }
@@ -195,13 +196,13 @@ public class Decimal64Test {
 
         @Test
         public void invalid_trailing_zeros() {
-            var ex = assertThrows(RuntimeException.class, () -> validate(makeUnsafe(31400, 0)));
+            var ex = assertThrows(RuntimeException.class, () -> validate(Internal.Data.makeUnsafe(31400, 0)));
             assertEquals("Decimal (16076800, 31400, 0) mantissa has trailing zeros", ex.getMessage());
         }
 
         @Test
         public void zero_with_nonzero_exponent() {
-            var ex = assertThrows(RuntimeException.class, () -> validate(makeUnsafe(0, -1)));
+            var ex = assertThrows(RuntimeException.class, () -> validate(Internal.Data.makeUnsafe(0, -1)));
             assertEquals("Decimal (511, 0, -1) is ambiguous, exponent should be zero", ex.getMessage());
         }
 
@@ -213,7 +214,7 @@ public class Decimal64Test {
                 int exponent = getExponent(decimal);
 
                 // check triplet debug string
-                assertEquals(String.format("(%d, %d, %d)", makeUnsafe(mantissa, exponent), mantissa, exponent), triplet(decimal));
+                assertEquals(String.format("(%d, %d, %d)", Internal.Data.makeUnsafe(mantissa, exponent), mantissa, exponent), triplet(decimal));
 
                 // strip trailing zeros in mantissa
                 while (mantissa != 0 && mantissa % 10 == 0) {
@@ -222,21 +223,21 @@ public class Decimal64Test {
 
                 {
                     // valid
-                    long x = makeUnsafe(mantissa, exponent);
+                    long x = Internal.Data.makeUnsafe(mantissa, exponent);
                     assertDoesNotThrow(() -> validate(x), Internal.Debug.triplet(x));
                     assertDoesNotThrow(() -> validateFinite(x), Internal.Debug.triplet(x));
                 }
 
                 {
                     // invalid special exponent
-                    long x = makeUnsafe(mantissa == 0 ? 1 : mantissa, -256);
+                    long x = Internal.Data.makeUnsafe(mantissa == 0 ? 1 : mantissa, -256);
                     var ex = assertThrows(RuntimeException.class, () -> validate(x), Internal.Debug.triplet(x));
                     assertEquals("Decimal " + Internal.Debug.triplet(x) + " has special exponent -256 but isn't NaN or -/+ Infinity", ex.getMessage(), Internal.Debug.triplet(x));
                 }
 
                 {
                     // invalid large exponent
-                    long x = makeUnsafe(mantissa == 0 ? 1 : mantissa, -256);
+                    long x = Internal.Data.makeUnsafe(mantissa == 0 ? 1 : mantissa, -256);
                     var ex = assertThrows(RuntimeException.class, () -> validateFinite(x), Internal.Debug.triplet(x));
                     assertEquals("Decimal " + Internal.Debug.triplet(x) + " exponent is out of range [-255, 255]", ex.getMessage(), Internal.Debug.triplet(x));
                 }
@@ -245,12 +246,12 @@ public class Decimal64Test {
                     mantissa = (mantissa / 10) * 10;
                     if (mantissa == 0) {
                         // zero mantissa with nonzero exponent
-                        long x = makeUnsafe(mantissa, exponent == 0 ? 1 : exponent);
+                        long x = Internal.Data.makeUnsafe(mantissa, exponent == 0 ? 1 : exponent);
                         var ex = assertThrows(RuntimeException.class, () -> validate(x), Internal.Debug.triplet(x));
                         assertEquals("Decimal " + Internal.Debug.triplet(x) + " is ambiguous, exponent should be zero", ex.getMessage(), Internal.Debug.triplet(x));
                     } else {
                         // invalid mantissa, trailing zeros
-                        long x = makeUnsafe(mantissa, exponent);
+                        long x = Internal.Data.makeUnsafe(mantissa, exponent);
                         var ex = assertThrows(RuntimeException.class, () -> validate(x), Internal.Debug.triplet(x));
                         assertEquals("Decimal " + Internal.Debug.triplet(x) + " mantissa has trailing zeros", ex.getMessage(), Internal.Debug.triplet(x));
                     }
@@ -258,14 +259,14 @@ public class Decimal64Test {
 
                 {
                     // invalid mantissa, exceeds max
-                    long x = makeUnsafe(MAX_MANTISSA + 1, exponent);
+                    long x = Internal.Data.makeUnsafe(MAX_MANTISSA + 1, exponent);
                     var ex = assertThrows(RuntimeException.class, () -> validate(x), Internal.Debug.triplet(x));
                     assertEquals("Decimal " + Internal.Debug.triplet(x) + " mantissa is out of range [-9999999999999999, 9999999999999999]", ex.getMessage(), Internal.Debug.triplet(x));
                 }
 
                 {
                     // invalid mantissa, exceeds min
-                    long x = makeUnsafe(MIN_MANTISSA - 1, exponent);
+                    long x = Internal.Data.makeUnsafe(MIN_MANTISSA - 1, exponent);
                     var ex = assertThrows(RuntimeException.class, () -> validate(x), Internal.Debug.triplet(x));
                     assertEquals("Decimal " + Internal.Debug.triplet(x) + " mantissa is out of range [-9999999999999999, 9999999999999999]", ex.getMessage(), Internal.Debug.triplet(x));
                 }
@@ -2371,7 +2372,6 @@ public class Decimal64Test {
                 // -0.00000005 + 1000000000 = 999999999.99999995
                 var a = fromParts(-5, 8);
                 var b = fromParts(1, -9);
-                // var expected = fromParts(9999999999999999L, 7); // if truncating
                 var expected = fromParts(1, -9);
 
                 assertDecEquals(expected, add(a, b));
@@ -2527,7 +2527,9 @@ public class Decimal64Test {
 
             @Test
             public void case_0027() {
-                // -878594030459625900000 + -4310444807979995000000000000 = -4310445686574025459625900000
+                //   -878594030459625900000
+                // + -4310444807979995000000000000
+                // = -4310445686574025459625900000
                 var a = fromParts(-8785940304596259L, -5);
                 var b = fromParts(-4310444807979995L, -12);
                 var expected = fromParts(-4310445686574025L, -12);
@@ -2559,12 +2561,184 @@ public class Decimal64Test {
             }
 
             @Test
+            public void case_0030() {
+                // -0.00000059 + -8000000000 = -8000000000.00000059
+                var a = fromParts(-59, 8);
+                var b = fromParts(-8, -9);
+                var expected = fromParts(-8000000000000001L, 6);
+
+                assertDecEquals(expected, add(a, b));
+                assertDecEquals(expected, add(b, a));
+            }
+
+            @Test
+            public void case_0031() {
+                //    0.0000000000000000000000000000000000558053661
+                // + -0.00000000000000000000007287311484
+                // = -0.00000000000000000000007287311483994419
+                var a = fromParts(558053661, 43);
+                var b = fromParts(-7287311484L, 32);
+                var expected = fromParts(-7287311483994419L, 38);
+
+                assertDecEquals(expected, add(a, b));
+                assertDecEquals(expected, add(b, a));
+            }
+
+            @Test
+            public void case_0032() {
+                //    0.000000000000000000000000000000000000000000000905
+                // + -0.0000000000000000000000000000000346
+                // = -0.0000000000000000000000000000000345999999999991
+                var a = fromParts(905, 48);
+                var b = fromParts(-346, 34);
+                var expected = fromParts(-345999999999991L, 46);
+
+                assertDecEquals(expected, add(a, b));
+                assertDecEquals(expected, add(b, a));
+            }
+
+            @Test
+            public void case_0033() {
+                //            -367544450000000
+                // + -413841870000000000000000
+                // = -413841870367544450000000
+                // = -413841870367544400000000
+                var a = fromParts(-36754445, -7);
+                var b = fromParts(-41384187, -16);
+                var expected = fromParts(-4138418703675444L, -8);
+
+                assertDecEquals(expected, add(a, b));
+                assertDecEquals(expected, add(b, a));
+            }
+
+            @Test
+            public void case_0034() {
+                //            568638595800000000000000000
+                // + -66693442800000000000000000000000000
+                // = -66693442231361404200000000000000000
+                // = -66693442231361400000000000000000000
+                var a = fromParts(5686385958L, -17);
+                var b = fromParts(-666934428, -26);
+                var expected = fromParts(-666934422313614L, -20);
+
+                assertDecEquals(expected, add(a, b));
+                assertDecEquals(expected, add(b, a));
+            }
+
+            @Test
+            public void case_0035() {
+                //           6484106154174000000000000000000000000000
+                // + 112976361541600000000000000000000000000000000000
+                // = 112976368025706154174000000000000000000000000000
+                // = 112976368025706200000000000000000000000000000000
+                var a = fromParts(6484106154174L, -27);
+                var b = fromParts(1129763615416L, -35);
+                var expected = fromParts(1129763680257062L, -32);
+
+                assertDecEquals(expected, add(a, b));
+                assertDecEquals(expected, add(b, a));
+            }
+
+            @Test
+            public void case_0036() {
+                //    -6651618724675.716
+                // + 106249257170282.4
+                // =  99597638445606.684
+                // =  99597638445606.68
+                var a = fromParts(-6651618724675716L, 3);
+                var b = fromParts(1062492571702824L, 1);
+                var expected = fromParts(9959763844560668L, 2);
+
+                assertDecEquals(expected, add(a, b));
+                assertDecEquals(expected, add(b, a));
+            }
+
+            @Test
+            public void case_0037() {
+                //   -0.000000000000000000000000000000000000000060453245
+                // +  0.0000000000000000000000000000000000000000000000000000080545057
+                // = -0.0000000000000000000000000000000000000000604532449999919454943
+                // = -0.00000000000000000000000000000000000000006045324499999195 ==>
+                var a = fromParts(-60453245, 48);
+                var b = fromParts(80545057, 61);
+                var expected = fromParts(-6045324499999195L, 56);
+
+                assertDecEquals(expected, add(a, b));
+                assertDecEquals(expected, add(b, a));
+            }
+
+            @Test
+            public void case_0038() {
+                //                 -25024963.58732
+                // + 91140510223610000000000
+                // = 91140510223609974975036.41268
+                // = 91140510223609970000000
+                var a = fromParts(-2502496358732L, 5);
+                var b = fromParts(9114051022361L, -10);
+                var expected = fromParts(9114051022360997L, -7);
+
+                assertDecEquals(expected, add(a, b));
+                assertDecEquals(expected, add(b, a));
+            }
+
+            @Test
+            public void case_0039() {
+                //   -0.0000001
+                //  + 0.000000000000000000000084
+                // = -0.000000099999999999999916
+                // = -0.00000009999999999999992
+                var a = fromParts(-1, 7);
+                var b = fromParts(84, 24);
+                var expected = fromParts(-9999999999999992L, 23);
+
+                assertDecEquals(expected, add(a, b));
+                assertDecEquals(expected, add(b, a));
+            }
+
+            @Test
+            public void case_0040() {
+                //     0.000000053530774993981
+                // + -83.902273458533
+                // = -83.902273405002225006019
+                // = -83.90227340500223
+                var a = fromParts(53530774993981L, 21);
+                var b = fromParts(-83902273458533L, 12);
+                var expected = fromParts(-8390227340500223L, 14);
+
+                assertDecEquals(expected, add(a, b));
+                assertDecEquals(expected, add(b, a));
+            }
+
+            @Test
+            public void case_0041() {
+                //    0.0000000000000000009
+                // + -0.01
+                // = -0.0099999999999999991
+                // = -0.009999999999999999
+                var a = fromParts(9, 19);
+                var b = fromParts(-1, 2);
+                var expected = fromParts(-9999999999999999L, 18);
+
+                assertDecEquals(expected, add(a, b));
+                assertDecEquals(expected, add(b, a));
+            }
+
+            @Test
             public void random() {
                 fuzz(FUZZ_N, (a, b) -> {
                     var expected = toBigDecimal(a).add(toBigDecimal(b), MathContext.DECIMAL64).stripTrailingZeros();
 
-                    assertEquals(expected, toBigDecimal(add(a, b)), () -> Decimal64.toString(a) + " + " + Decimal64.toString(b));
-                    assertEquals(expected, toBigDecimal(add(b, a)), () -> Decimal64.toString(b) + " + " + Decimal64.toString(a));
+                    assertEquals(expected, toBigDecimal(add(a, b)), () -> {
+                        var _a = toBigDecimal(a);
+                        var _b = toBigDecimal(b);
+                        return String.format("%s %s + %s %s = %s -> %s",
+                                _a.toPlainString(), Decimal64.tuple(a),
+                                _b.toPlainString(), Decimal64.tuple(b),
+                                _a.add(_b, MathContext.UNLIMITED).toPlainString(),
+                                _a.add(_b, MathContext.DECIMAL64).toPlainString()
+                        );
+                    });
+                    assertEquals(expected, toBigDecimal(add(b, a)), () -> Decimal64.tuple(b) + " + " + Decimal64.tuple(a));
                 });
             }
         }
