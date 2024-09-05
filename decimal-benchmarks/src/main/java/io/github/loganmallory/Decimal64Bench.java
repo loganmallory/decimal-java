@@ -14,8 +14,8 @@ import java.util.concurrent.TimeUnit;
 
 @State(Scope.Thread)
 @Fork(value = 1, warmups = 1)
-@Warmup(iterations = 1)
-@Measurement(iterations = 3, timeUnit = TimeUnit.NANOSECONDS)
+@Warmup(iterations = 1, time = 10)
+@Measurement(iterations = 1, timeUnit = TimeUnit.NANOSECONDS)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @BenchmarkMode(Mode.AverageTime)
 public class Decimal64Bench {
@@ -45,13 +45,13 @@ public class Decimal64Bench {
         return Decimal64.add(a, b);
     }
 
-    @Benchmark
-    public BigDecimal addBigDecimal() {
-        BigDecimal a = bigDecimalSamples[(index++) % N];
-        BigDecimal b = bigDecimalSamples[(index++) % N];
-        if (index < 0) index = 0;
-        return a.add(b, MathContext.DECIMAL64);
-    }
+//    @Benchmark
+//    public BigDecimal addBigDecimal() {
+//        BigDecimal a = bigDecimalSamples[(index++) % N];
+//        BigDecimal b = bigDecimalSamples[(index++) % N];
+//        if (index < 0) index = 0;
+//        return a.add(b, MathContext.DECIMAL64);
+//    }
 
     public static void main(String[] args) throws Exception {
         var jmhOpts = new OptionsBuilder()
@@ -59,6 +59,7 @@ public class Decimal64Bench {
                 .addProfiler(AsyncProfiler.class, "libPath=/Applications/IntelliJ IDEA.app/Contents/lib/async-profiler/libasyncProfiler.dylib;output=jfr;event=cpu;alloc;dir=decimal-benchmarks/results")
                 .build();
 
+        System.out.println("decimal64 version = " + Decimal64.version);
         new Runner(jmhOpts).run();
     }
 }
