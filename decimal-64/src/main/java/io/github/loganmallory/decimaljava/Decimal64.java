@@ -1168,28 +1168,111 @@ public class Decimal64 {
                     return FastMath.sameSign(decimalA, decimalB) ? POSITIVE_INFINITY : NEGATIVE_INFINITY;
                 }
 
+                public static long split(long x, int k) {
+                    int x_n_digits = FastMath.nDigits(x);
+
+                    int drop = x_n_digits - k;
+
+                    if (drop <= 0) {
+                        return x << 32;
+                    }
+
+                    long div = FastMath.i64TenToThe(drop);
+
+                    int upper = (int) (x / div);
+                    int lower = (int) (x % div);
+                    return ((long) upper << 32) | lower;
+                }
+
                 public static @Decimal long mulFinite(@Decimal long decimalA, @Decimal long decimalB) {
                     // fast path check for zero
                     if (decimalA == ZERO || decimalB == ZERO) {
                         return ZERO;
                     }
 
-                    long a_mantissa = getMantissa(decimalA);
-                    long b_mantissa = getMantissa(decimalB);
+                    @SuppressWarnings("fenum:argument")
+                    int sign = FastMath.sameSign(decimalA, decimalB) ? 1 : -1;
+
+                    long a_mantissa = Math.abs(getMantissa(decimalA));
+                    long b_mantissa = Math.abs(getMantissa(decimalB));
                     int a_exponent = getExponent(decimalA);
                     int b_exponent = getExponent(decimalB);
 
-                    // i64 can hold all 18 digit numbers
-                    if (FastMath.nDigits(a_mantissa) + FastMath.nDigits(b_mantissa) <= 18) {
-                        long product = a_mantissa * b_mantissa;
-                        int exponent = a_exponent + b_exponent;
-                        return fromParts(product, exponent);
-                    } // TODO saturating mul instead of n digits check
+                    // try to multiply in an i64
+                    if (b_mantissa <= Long.MAX_VALUE / a_mantissa) {
+                        long productMantissa = a_mantissa * b_mantissa * sign;
+                        int productExponent  = a_exponent + b_exponent;
+                        return Internal.Convert.Parts.fromParts(productMantissa, productExponent);
+                    }
 
-                    var bigDecimalA       = BigDecimal.valueOf(a_mantissa, a_exponent);
-                    var bigDecimalB       = BigDecimal.valueOf(b_mantissa, b_exponent);
-                    var bigDecimalProduct = bigDecimalA.multiply(bigDecimalB, MathContext.DECIMAL64);
-                    return Convert.BigDec.fromBigDecimal(bigDecimalProduct);
+                    // a_h, a_l = a / 10**8, a % 10**8
+                    // b_h, b_l = b / 10**8, b % 10**8
+                    // y = (a_h * 10**8 + a_l) * (b_h * 10**8 + b_l)
+                    //   = (a_h * b_h * 10**16) + (a_h * b_l * 10**8)  + (a_l * b_h * 10**8)  + (a_l * b_l)
+                    // y / 10^16 = (a_h * b_h)  + (a_h * b_l * 10**-8) + (a_l * b_h * 10**-8) + (a_l * b_l * 10**-16) // upper 16
+                    // y % 10^16 =     (a_h * b_h * 10**16 + (a_h * b_l * 10**8) + (a_l * b_h * 10**8) + (a_l * b_l)) % 10^16   // lower 16 goal
+                    // (y % 10^16)/10^8 =     0 + (a_h * b_l) + (a_l * b_h) + 0                                       // upper 8 of lower 16
+                    // (y % 10^16) % 10^8 =   0 + 0 + 0 + (a_l * b_l)                                                 // lower 8 of lower 16
+
+                    // y        = (a_h * 10**8 + a_l) * (b_h * 10**8 + b_l)
+                    //          = (a_h * b_h * 10**16) + (a_h * b_l * 10**8)  + (a_l * b_h * 10**8)  + (a_l * b_l)
+                    // y / 10^k = (a_h * b_h * 10**16-k) + (a_h * b_l * 10**8-k)  + (a_l * b_h * 10**8-k)  + (a_l * b_l / 10**k)
+                    //          = a_h_b_h_(16-k zeros) + a_h_bl_(8-k zeros) + a_l_b_h_(8-k zeros) + a_l_b_l
+
+                    long split = FastMath.i64TenToThe(8);
+                    long a_hi = a_mantissa / split;
+                    long a_lo = a_mantissa % split;
+                    long b_hi = b_mantissa / split;
+                    long b_lo = b_mantissa % split;
+
+                    long upper16 = a_hi * b_hi;
+                    long middle8 = (a_hi * b_lo) + (a_lo * b_hi);
+                    long lower8  = a_lo * b_lo;
+
+                    int need = 16 - FastMath.nDigits(upper16);
+                    if (need == 0) {
+                        // check for rounding in middle8
+                        // middle8 < 50_000_000: no rounding
+                        // middle8 == 50_000_000: check lower8
+                        // middle8 > 50_000_000: round
+                        if (middle8 > 50_000_000 || (middle8 == 50_000_000 && (lower8 > 0 || upper16 % 2 != 0))) {
+                            // round
+                            upper16 += 1;
+                        }
+                        return Internal.Convert.Parts.fromParts(upper16, a_exponent + b_exponent - 16);
+                    }
+
+                    long product_mantissa = upper16;
+                    product_mantissa *= FastMath.i64TenToThe(need); // now product_mantissa is 16 digits, zeros at the end
+                    product_mantissa += middle8 / FastMath.i64TenToThe(FastMath.nDigits(middle8) - need); // just take first `need` digits of middle
+                    long middle8Rem = middle8 % FastMath.i64TenToThe(FastMath.nDigits(middle8) - need);
+                    int takenFromMiddle8 = need;
+                    need = 16 - FastMath.nDigits(product_mantissa);
+                    if (need == 0) {
+                        if (takenFromMiddle8 < 8) {
+                            // check for rounding starting where we left off in middle8
+                            long half = 5 * FastMath.i64TenToThe(FastMath.nDigits(middle8Rem)-1);
+                            if (middle8Rem > half || (middle8Rem == half && (lower8 > 0 || product_mantissa % 2 != 0))) {
+                                product_mantissa += 1;
+                            }
+                        }
+                        // check for rounding based on lowe8
+                        if (lower8 > 50_000_000 || (lower8 == 50_000_000 && product_mantissa % 2 != 0)) {
+                            product_mantissa += 1;
+                        }
+                    }
+
+                    product_mantissa += lower8 / FastMath.i64TenToThe(FastMath.nDigits(lower8) - need); // just take first `need` digits of lower
+                    long lower8Rem = lower8 % FastMath.i64TenToThe(FastMath.nDigits(lower8) - need);
+                    int takenFromLower8 = need;
+                    long half = 5 * FastMath.i64TenToThe(FastMath.nDigits(lower8Rem)-1);
+                    if (lower8Rem > half || (lower8Rem == half && product_mantissa % 2 != 0)) {
+                        product_mantissa += 1;
+                    }
+
+                    int full_nd = FastMath.nDigits(upper16) + 16;
+                    int product_exponent = a_exponent + b_exponent - 16;
+                    return Internal.Convert.Parts.fromParts(product_mantissa * sign, product_exponent);
                 }
             }
 

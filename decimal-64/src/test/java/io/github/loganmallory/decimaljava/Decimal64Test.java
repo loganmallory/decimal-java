@@ -3506,7 +3506,7 @@ public class Decimal64Test {
 
             @Test
             public void case_0033() {
-                // 3436348972-e166 * -20632984e-106 = -70902133357692448e-272 -> 0
+                // 3436348972e-166 * -20632984e-106 = -70902133357692448e-272 -> 0
                 var a = fromParts(3436348972L, 166);
                 var b = fromParts(-20632984, 106);
                 var expected = ZERO;
@@ -3521,6 +3521,122 @@ public class Decimal64Test {
                 var a = fromParts(61322761611395L, 149);
                 var b = fromParts(158969636387037L, 133);
                 var expected = fromParts(1, 254);
+
+                assertDecEquals(expected, mul(a, b));
+                assertDecEquals(expected, mul(b, a));
+            }
+
+            @Test
+            public void case_0035() {
+                // 123_456_789_012 * 987_654_321_098 = 121932631136585886175176
+                var a = fromParts(123456789012L, 0);
+                var b = fromParts(987654321098L, 0);
+                var expected = fromParts(1219326311365859L, -8);
+
+                assertDecEquals(expected, mul(a, b));
+                assertDecEquals(expected, mul(b, a));
+            }
+
+            @Test
+            public void case_0036() {
+                // -9334613496e139 * -7022412859e-110 = 65551509848105345064e29
+                var a = fromParts(-9334613496L, -139);
+                var b = fromParts(-7022412859L, 110);
+                var expected = fromParts(6555150984810535L, -33);
+
+                System.out.println(toBigDecimal(a).multiply(toBigDecimal(b), MathContext.DECIMAL64).toPlainString());
+
+                assertDecEquals(expected, mul(a, b));
+                assertDecEquals(expected, mul(b, a));
+            }
+
+            @Test
+            public void case_0037() {
+                // -9368540873000 * -217785450430 = 2040331893898170425390000
+                var a = fromParts(-9368540873L, -3);
+                var b = fromParts(-21778545043L, -1);
+                var expected = fromParts(2040331893898170L, -9);
+
+                System.out.println(toBigDecimal(a).multiply(toBigDecimal(b), MathContext.UNLIMITED).toPlainString());
+
+                assertDecEquals(expected, mul(a, b));
+                assertDecEquals(expected, mul(b, a));
+            }
+
+            @Test
+            public void case_0038() {
+                //   0.00000000000000000000000000000000000000000000000000000000019314476954
+                // * -3553832329000000000000000000000000000000000000000000000000000000000
+                var a = fromParts(19314476954L, 68);
+                var b = fromParts(-3553832329L, -57);
+                var expected = fromParts(-6864041261685065L, 7);
+
+                assertDecEquals(expected, mul(a, b));
+                assertDecEquals(expected, mul(b, a));
+            }
+
+            @Test
+            public void case_0039() {
+                // -4232318486.26756 * 3050092617974200 = -12908963371880425311926376.952
+                var a = fromParts(-423231848626756L, 5);
+                var b = fromParts(30500926179742L, -2);
+                var expected = fromParts(-1290896337188043L, -10);
+
+                System.out.println(toBigDecimal(a).multiply(toBigDecimal(b), MathContext.DECIMAL64).toPlainString());
+
+                assertDecEquals(expected, mul(a, b));
+                assertDecEquals(expected, mul(b, a));
+            }
+
+            @Test
+            public void case_0040() {
+                // 42774045596889000 * 39616609116952000 = 1694562644762633000000000000000000
+                var a = fromParts(42774045596889L, -3);
+                var b = fromParts(39616609116952L, -3);
+                var expected = fromParts(1694562644762633L, -18);
+
+                assertDecEquals(expected, mul(a, b));
+                assertDecEquals(expected, mul(b, a));
+            }
+
+            @Test
+            public void case_0041() {
+                //   2394146774697500000000000000000000000000000
+                // * 0.00000000000000000000000000000028630630334629
+                // = 685459312732.084254952497275
+                //   685459312732.08424
+                var a = fromParts(23941467746975L, -29);
+                var b = fromParts(28630630334629L, 44);
+                var expected = fromParts(6854593127320843L, 4);
+
+                assertDecEquals(expected, mul(a, b));
+                assertDecEquals(expected, mul(b, a));
+            }
+
+            @Test
+            public void case_0042() {
+                //   -4039443862019000000000
+                // * -14389648000000000000000000000 =
+                //    58126175290213979312000000000000000000000000000000
+                var a = fromParts(4039443862019L, -9);
+                var b = fromParts(14389648, -21);
+                var expected = fromParts(5812617529021398L, -34);
+
+                System.out.println(toBigDecimal(a).multiply(toBigDecimal(b), MathContext.UNLIMITED).toPlainString());
+
+                assertDecEquals(expected, mul(a, b));
+                assertDecEquals(expected, mul(b, a));
+            }
+
+            @Test
+            public void case_0043() {
+                // 0.0000963693477966 * 970442156889000000000000000000000
+                // = 93520877733718703660777400000
+                var a = fromParts(963693477966L, 16);
+                var b = fromParts(970442156889L, -21);
+                var expected = fromParts(935208777337187L, -14);
+
+                System.out.println(toBigDecimal(a).multiply(toBigDecimal(b), MathContext.DECIMAL64).toPlainString());
 
                 assertDecEquals(expected, mul(a, b));
                 assertDecEquals(expected, mul(b, a));
