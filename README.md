@@ -65,7 +65,7 @@ To include this library in your project, add the following to your build system:
 <dependency>
   <groupId>io.github.loganmallory</groupId>
   <artifactId>decimal-java</artifactId>
-  <version>0.1.0</version>
+  <version>1.0.0</version>
 </dependency>
 ```
 
