@@ -67,7 +67,6 @@
                     <!-- must fork for <compilerArgs> -->
                     <fork>true</fork>
 
-                    <!-- , and load the @Decimal annotation from the decimal-annotations jar -->
                     <annotationProcessorPaths>
                         <!-- load checker so @Decimal works -->
                         <path>

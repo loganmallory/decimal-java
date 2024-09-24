@@ -20,6 +20,11 @@
             <artifactId>decimal-64</artifactId>
             <version>1.0.0</version>
         </dependency>
+        <dependency>
+            <groupId>io.github.loganmallory</groupId>
+            <artifactId>decimal-annotations</artifactId>
+            <version>1.0.0</version>
+        </dependency>
 
         <dependency>
             <groupId>org.openjdk.jmh</groupId>

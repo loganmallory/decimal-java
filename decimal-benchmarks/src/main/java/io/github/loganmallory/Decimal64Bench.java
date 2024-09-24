@@ -3137,8 +3137,8 @@ public class Decimal64Bench {
 
     public static void main(String[] args) throws Exception {
         var classes = Decimal64Bench.class.getName() + ".*";
-        boolean profile = false;
-        var mode = Mode.Throughput;
+        boolean profile = true;
+        var mode = Mode.All;
         var outFmt = ResultFormatType.JSON;
 
         var outFolder = Paths.get(String.format("decimal-benchmarks/results/%s-%s", classes.replaceAll("\\*", ""), mode));
@@ -3147,6 +3147,7 @@ public class Decimal64Bench {
         var jmhOpts = new OptionsBuilder()
                 .include(classes)
                 .forks(1)
+                .mode(mode)
                 // warmup
                 .warmupForks(0)
                 .warmupIterations(1)
