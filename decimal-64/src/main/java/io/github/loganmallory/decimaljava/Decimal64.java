@@ -17,23 +17,22 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class Decimal64 {
 
-    public static String version = "2";
-    /** The bit pattern for a NaN Decimal, where mantissa=0, and exponent=-256. */
+    /** The bit pattern for a NaN Decimal, where mantissa=0, and exponent=-256 */
     public static final @Decimal long NAN = Internal.Data.makeUnsafe(0, SPECIAL_EXPONENT);
 
-    /** The bit pattern for a -Inf Decimal, where mantissa=-2^54-1, and exponent=-256. */
+    /** The bit pattern for a -Inf Decimal, where mantissa=-2^54-1, and exponent=-256 */
     public static final @Decimal long NEGATIVE_INFINITY = Internal.Data.makeUnsafe(-((1L<<(N_MANTISSA_BITS-1))-1), SPECIAL_EXPONENT);
 
-    /** The bit pattern for a +Inf Decimal, where mantissa=2^54-1, and exponent=-256. */
+    /** The bit pattern for a +Inf Decimal, where mantissa=2^54-1, and exponent=-256 */
     public static final @Decimal long POSITIVE_INFINITY = Internal.Data.makeUnsafe((1L<<(N_MANTISSA_BITS-1))-1, SPECIAL_EXPONENT);
 
-    /** The bit pattern for a zero-value Decimal, where mantissa=0, and exponent=0. */
+    /** The bit pattern for a zero-value Decimal, where mantissa=0, and exponent=0 */
     public static final @Decimal long ZERO = Internal.Data.makeUnsafe(0, 0);
 
-    /** The bit pattern for a one-value Decimal, where mantissa=0, and exponent=0. */
+    /** The bit pattern for a one-value Decimal, where mantissa=0, and exponent=0 */
     public static final @Decimal long ONE = Internal.Data.makeUnsafe(1, 0);
 
-    /** The bit pattern for a two-value Decimal, where mantissa=0, and exponent=0. */
+    /** The bit pattern for a two-value Decimal, where mantissa=0, and exponent=0 */
     public static final @Decimal long TWO = Internal.Data.makeUnsafe(2, 0);
 
     /**
@@ -161,9 +160,8 @@ public class Decimal64 {
              */
             @SuppressWarnings({"fenum:binary", "fenum:return"})
             public static int getExponent(@Decimal long decimal) {
-                int exp = (int) (decimal & EXPONENT_MASK_i32);
-                // extend the sign bit
-                exp = ((exp << EXPONENT_SIGN_SHIFT_i32) >> EXPONENT_SIGN_SHIFT_i32);
+                int exp = (int) decimal; // take lower 32 bits
+                exp = (exp << EXPONENT_SIGN_SHIFT_i32) >> EXPONENT_SIGN_SHIFT_i32; // extend sign bit
                 return exp;
             }
 
