@@ -71,7 +71,7 @@ To include this library in your project, add the following to your build system:
 
 ### Gradle
 ```
-
+TODO
 ```
 
 ---
@@ -188,4 +188,9 @@ to include the following:
     </plugins>
   </build>
 </project>
+```
+
+#### Gradle
+```
+TODO
 ```
