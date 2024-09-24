@@ -8,7 +8,7 @@
     <parent>
         <groupId>io.github.loganmallory</groupId>
         <artifactId>decimal-java</artifactId>
-        <version>0.0.0-SNAPSHOT</version>
+        <version>1.0.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -47,7 +47,7 @@
         <dependency>
             <groupId>io.github.loganmallory</groupId>
             <artifactId>decimal-annotations</artifactId>
-            <version>0.0.0-SNAPSHOT</version>
+            <version>1.0.0</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
@@ -79,7 +79,7 @@
                         <dependency>
                             <groupId>io.github.loganmallory</groupId>
                             <artifactId>decimal-annotations</artifactId>
-                            <version>0.0.0-SNAPSHOT</version>
+                            <version>1.0.0</version>
                         </dependency>
                     </annotationProcessorPaths>
                     <compilerArgs>
