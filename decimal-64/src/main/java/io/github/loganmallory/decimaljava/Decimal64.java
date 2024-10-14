@@ -1174,22 +1174,24 @@ public class Decimal64 {
                         return ZERO;
                     }
 
-                    long a_mantissa = getMantissa(decimalA);
-                    long b_mantissa = getMantissa(decimalB);
+                    @SuppressWarnings("fenum:argument")
+                    int sign = FastMath.sameSign(decimalA, decimalB) ? 1 : -1;
+                    long a_mantissa = Math.abs(getMantissa(decimalA));
+                    long b_mantissa = Math.abs(getMantissa(decimalB));
                     int a_exponent = getExponent(decimalA);
                     int b_exponent = getExponent(decimalB);
 
-                    // i64 can hold all 18 digit numbers
-                    if (FastMath.nDigits(a_mantissa) + FastMath.nDigits(b_mantissa) <= 18) {
-                        long product = a_mantissa * b_mantissa;
-                        int exponent = a_exponent + b_exponent;
-                        return fromParts(product, exponent);
-                    } // TODO saturating mul instead of n digits check
+                    // try to multiply in an i64
+                    if (b_mantissa <= Long.MAX_VALUE / a_mantissa) {
+                        long productMantissa = a_mantissa * b_mantissa * sign;
+                        int productExponent  = a_exponent + b_exponent;
+                        return Internal.Convert.Parts.fromParts(productMantissa, productExponent);
+                    }
 
-                    var bigDecimalA       = BigDecimal.valueOf(a_mantissa, a_exponent);
+                    var bigDecimalA       = BigDecimal.valueOf(a_mantissa * sign, a_exponent);
                     var bigDecimalB       = BigDecimal.valueOf(b_mantissa, b_exponent);
                     var bigDecimalProduct = bigDecimalA.multiply(bigDecimalB, MathContext.DECIMAL64);
-                    return Convert.BigDec.fromBigDecimal(bigDecimalProduct);
+                    return Internal.Convert.BigDec.fromBigDecimal(bigDecimalProduct);
                 }
             }
 
