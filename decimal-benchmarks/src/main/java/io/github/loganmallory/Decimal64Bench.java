@@ -5,11 +5,15 @@ import io.github.loganmallory.decimaljava.Decimal64;
 import io.github.loganmallory.decimaljava.annotations.Decimal;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.profile.AsyncProfiler;
+import org.openjdk.jmh.results.format.ResultFormatType;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.openjdk.jmh.runner.options.TimeValue;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -61,11 +65,11 @@ public class Decimal64Bench {
 
     public static class Maths {
 
-        @Fork(value = 1, warmups = 0)
-        @Warmup(iterations = 0)
-        @Measurement(iterations = 5, time = 10, timeUnit = TimeUnit.MILLISECONDS)
-        @OutputTimeUnit(TimeUnit.NANOSECONDS)
-        @BenchmarkMode(Mode.AverageTime)
+//        @Fork(value = 1, warmups = 0)
+//        @Warmup(iterations = 1, time = 100, timeUnit = TimeUnit.MILLISECONDS)
+//        @Measurement(iterations = 5, time = 10, timeUnit = TimeUnit.MILLISECONDS)
+//        @OutputTimeUnit(TimeUnit.NANOSECONDS)
+//        @BenchmarkMode(Mode.AverageTime)
         public static class Add {
 
             @Benchmark
@@ -3132,11 +3136,42 @@ public class Decimal64Bench {
 
 
     public static void main(String[] args) throws Exception {
-        var jmhOpts = new OptionsBuilder()
-                .include(Decimal64Bench.class.getName() + ".*")
-//                .addProfiler(AsyncProfiler.class, "libPath=/Applications/IntelliJ IDEA.app/Contents/lib/async-profiler/libasyncProfiler.dylib;output=jfr;event=cpu;alloc;dir=decimal-benchmarks/results")
-                .build();
+        var classes = Decimal64Bench.class.getName() + ".*";
+        boolean profile = true;
+        var mode = Mode.All;
+        var outFmt = ResultFormatType.JSON;
 
-        new Runner(jmhOpts).run();
+        var outFolder = Paths.get(String.format("decimal-benchmarks/results/%s-%s", classes.replaceAll("\\*", ""), mode));
+        Files.createDirectories(outFolder);
+
+        var jmhOpts = new OptionsBuilder()
+                .include(classes)
+                .forks(1)
+                .mode(mode)
+                // warmup
+                .warmupForks(0)
+                .warmupIterations(1)
+                .warmupTime(TimeValue.milliseconds(100))
+                // measurement
+                .measurementIterations(5)
+                .measurementTime(TimeValue.milliseconds(10))
+                // output
+                .result(outFolder + "/summary." + outFmt.name().toLowerCase())
+                .resultFormat(outFmt);
+
+        if (profile) {
+            jmhOpts.addProfiler(AsyncProfiler.class, "libPath=/Applications/IntelliJ IDEA.app/Contents/lib/async-profiler/libasyncProfiler.dylib;output=jfr;event=cpu;alloc;dir=decimal-benchmarks/results");
+        }
+
+        switch (mode) {
+            case All, AverageTime, SingleShotTime, SampleTime -> {
+                jmhOpts.timeUnit(TimeUnit.NANOSECONDS);
+            }
+            case Throughput -> {
+                jmhOpts.timeUnit(TimeUnit.SECONDS);
+            }
+        }
+
+        new Runner(jmhOpts.build()).run();
     }
 }

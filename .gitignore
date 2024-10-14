@@ -11,3 +11,6 @@ htmlReport/
 
 # finder metadata
 **.DS_Store
+
+# benchmark results
+decimal-benchmarks/results/
