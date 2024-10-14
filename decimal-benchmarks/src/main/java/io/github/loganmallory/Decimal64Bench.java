@@ -3161,18 +3161,14 @@ public class Decimal64Bench {
 
         if (profile) {
             jmhOpts.addProfiler(AsyncProfiler.class, "libPath=/Applications/IntelliJ IDEA.app/Contents/lib/async-profiler/libasyncProfiler.dylib;output=jfr;event=cpu;alloc;dir=decimal-benchmarks/results");
-            jmhOpts.mode(Mode.SingleShotTime)
-                    .measurementIterations(1)
-                    .measurementTime(TimeValue.milliseconds(100));
-        } else {
-            switch (mode) {
-                case AverageTime, SingleShotTime, SampleTime -> {
-                    jmhOpts.timeUnit(TimeUnit.NANOSECONDS);
-                }
-                case Throughput -> {
-                    jmhOpts.timeUnit(TimeUnit.SECONDS);
-                }
-                default -> throw new RuntimeException("Benchmark mode `all` is not supported");
+        }
+
+        switch (mode) {
+            case All, AverageTime, SingleShotTime, SampleTime -> {
+                jmhOpts.timeUnit(TimeUnit.NANOSECONDS);
+            }
+            case Throughput -> {
+                jmhOpts.timeUnit(TimeUnit.SECONDS);
             }
         }
 
